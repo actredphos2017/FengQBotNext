@@ -74,6 +74,8 @@ web_modules/
 .yarn-integrity
 yarn.lock
 
+.idea
+
 # dotenv environment variables file
 .env
 .env.development.local

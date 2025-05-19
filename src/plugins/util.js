@@ -9,7 +9,8 @@ const plugin = {
     name: "内置工具",
     description: "Util",
     author: "Sakulin",
-    version: "1.0.0"
+    version: "1.0.0",
+    level: "core"
   },
   setup(api) {
     api.expose({

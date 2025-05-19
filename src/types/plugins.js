@@ -39,12 +39,39 @@
  */
 
 /**
+ * @typedef {"core" | "functional" | "normal" | "finally" | number} LoadLevel
+ */
+
+const levelMap = {
+    core: 200,
+    functional: 150,
+    normal: 100,
+    finally: 50
+};
+
+const defaultLevel = levelMap["normal"];
+
+/**
+ * @param {LoadLevel} level
+ * @return {number}
+ */
+export function getLoadLevel(level) {
+    if (level === undefined) return defaultLevel;
+    if (typeof level === "number") return level;
+    const res = levelMap[level];
+    if (typeof res !== "number")
+        return defaultLevel;
+    return res;
+}
+
+/**
  * @typedef {Object} PluginConfig
  * @property {string} id - 插件的唯一标识符
  * @property {string} name - 插件名称
  * @property {string} description - 插件描述
  * @property {string} author - 插件作者
  * @property {string} version - 插件版本
+ * @property {LoadLevel} level - 插件类型、加载优先级（可选）
  */
 
 /**
@@ -52,5 +79,3 @@
  * @property {PluginConfig} config - 插件配置
  * @property {function(PluginAPI): (void | Promise<void>)} setup - 插件初始化函数
  */
-
-export {};

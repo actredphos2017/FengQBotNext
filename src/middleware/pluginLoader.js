@@ -5,6 +5,7 @@ import {promises as fsPromises} from 'fs';
 import {fileURLToPath} from "node:url";
 import {Botconfig as config} from "../lib/config.js";
 import pipe from "../core/pipe.js";
+import { getLoadLevel } from "../types/plugins";
 
 /**
  * @typedef {Object} PluginDefine
@@ -13,7 +14,7 @@ import pipe from "../core/pipe.js";
  * @property {string} hash - 插件文件的 MD5 哈希值
  * @property {boolean} error - 插件加载是否出错
  * @property {import("../types/plugins").PluginInterface | undefined} api - 插件暴露的接口
- * @property {string[]} dependencies - 插件的依赖项
+ * @property {import("../types/plugins").LoadLevel} level - 加载等级
  * @property {boolean} rejected - 插件是否拒绝加载
  * @property {import("../types/plugins").Command[]} commands - 插件注册的命令
  */
@@ -52,6 +53,7 @@ async function loadPlugins() {
                         hash: currentMD5,
                         error: false,
                         api: undefined,
+                        level: pluginInstance.config.level,
                         rejected: false,
                         commands: []
                     }
@@ -67,7 +69,7 @@ async function loadPlugins() {
         console.error('加载插件目录失败:', error);
     }
 
-    for (const plugin of Object.values(plugins)) {
+    for (const plugin of Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; }).toSorted((a, b) => b.level - a.level)) {
         if (!plugin.loaded) {
             try {
                 await loadPlugin(plugin);
