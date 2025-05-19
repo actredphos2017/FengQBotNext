@@ -133,7 +133,7 @@ async function loadPlugin(pluginDefine) {
             });
         },
         cmd: (trigger, fn, config = {}) => {
-            command.trigger = Array.isArray(trigger) ? trigger : [trigger];
+            trigger = Array.isArray(trigger) ? trigger : [trigger];
             console.log(`插件 ${pluginId} 注册了命令: `, ...trigger);
             pluginDefine.commands.push({
                 trigger,
