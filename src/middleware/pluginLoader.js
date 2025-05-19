@@ -39,26 +39,24 @@ async function loadPlugins() {
                     console.log(`尝试加载插件: ${pluginPath}`);
                     const module = await import(`${pluginPath}?t=${Date.now()}`);
                     const pluginInstance = module.default;
-                    console.log(`插件:`, pluginInstance);
                     const currentMD5 = crypto.createHash('md5').update(await fsPromises.readFile(pluginPath)).digest('hex');
-                    const existingPlugin = plugins[pluginInstance.id];
+                    const existingPlugin = plugins[pluginInstance.config.id];
                     if (existingPlugin && existingPlugin.hash === currentMD5) {
-                        console.log(`插件 ${pluginInstance.id} 未发生更改，无需重新加载`);
+                        console.log(`插件 ${pluginInstance.config.id} 未发生更改，无需重新加载`);
                         continue;
                     }
 
-                    plugins[pluginInstance.id] = {
+                    plugins[pluginInstance.config.id] = {
                         instance: pluginInstance,
                         loaded: false,
                         hash: currentMD5,
                         error: false,
                         api: undefined,
-                        dependencies: pluginInstance.config.dependencies || [],
                         rejected: false,
                         commands: []
                     }
 
-                    console.log(`插件 ${pluginInstance.id} 将被加载`);
+                    console.log(`插件 ${pluginInstance.config.id} 将被加载`);
                 } catch (error) {
                     console.error(`加载插件 ${file} 时出错:`, error);
                 }
