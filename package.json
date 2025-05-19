@@ -1,0 +1,19 @@
+{
+  "name": "fengqbotnext",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --inspect ./src/index.js",
+    "run": "node ./src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "js-yaml": "^4.1.0",
+    "node-napcat-ts": "^0.4.11"
+  }
+}
