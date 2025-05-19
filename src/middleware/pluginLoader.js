@@ -5,7 +5,7 @@ import {promises as fsPromises} from 'fs';
 import {fileURLToPath} from "node:url";
 import {Botconfig as config} from "../lib/config.js";
 import pipe from "../core/pipe.js";
-import { getLoadLevel } from "../types/plugins";
+import { getLoadLevel } from "../types/plugins.js";
 
 /**
  * @typedef {Object} PluginDefine
