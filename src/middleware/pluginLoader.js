@@ -70,7 +70,7 @@ async function loadPlugins() {
     for (const plugin of Object.values(plugins)) {
         if (!plugin.loaded) {
             try {
-                await loadPlugin(plugin.instance);
+                await loadPlugin(plugin);
                 plugin.loaded = true;
                 console.log(`插件 ${plugin.instance.config.id} 已成功加载`);
             } catch (error) {
