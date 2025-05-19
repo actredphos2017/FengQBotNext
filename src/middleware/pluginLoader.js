@@ -104,7 +104,7 @@ async function loadPlugin(pluginDefine) {
             pipe.emit(event, data);
         },
         expose: (api) => {
-            pluginDefine.api = Object.assign(pluginDefine.api, api);
+            pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
         },
         withPlugin: (pluginId, func) => {
             const plugin = plugins[pluginId];
