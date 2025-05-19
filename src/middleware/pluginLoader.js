@@ -36,8 +36,10 @@ async function loadPlugins() {
             if (file.endsWith('.js')) {
                 const pluginPath = path.join(pluginsDir, file);
                 try {
+                    console.log(`尝试加载插件: ${pluginPath}`);
                     const module = await import(`${pluginPath}?t=${Date.now()}`);
-                    const pluginInstance = module.default();
+                    const pluginInstance = module.default;
+                    console.log(`插件:`, pluginInstance);
                     const currentMD5 = crypto.createHash('md5').update(await fsPromises.readFile(pluginPath)).digest('hex');
                     const existingPlugin = plugins[pluginInstance.id];
                     if (existingPlugin && existingPlugin.hash === currentMD5) {
