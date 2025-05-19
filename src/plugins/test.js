@@ -14,11 +14,8 @@ export default {
             api.reject("This plugin need util plugin.");
             return;
         }
-        api.withPlugin("util", (util) => {
-            util.http("");
-        });
         api.cmd({
-            alias: ["test", "ping"],
+            trigger: ["test", "ping"],
             description: "测试命令",
             fn: (ctx) => {
                 ctx.reply("pong");
