@@ -16,7 +16,11 @@ import { getLoadLevel } from "../types/plugins.js";
  * @property {import("../types/plugins").PluginInterface | undefined} api - 插件暴露的接口
  * @property {import("../types/plugins").LoadLevel} level - 加载等级
  * @property {boolean} rejected - 插件是否拒绝加载
- * @property {import("../types/plugins").Command[]} commands - 插件注册的命令
+ * @property {{
+ *     fn: (context: Context) => void | Promise<void>,
+ *     description: string,
+ *     trigger: string[]
+ * }[]} commands - 插件注册的命令
  */
 
 const CMD_PREFIX = config?.cmd?.prefix ?? '#';
@@ -128,10 +132,14 @@ async function loadPlugin(pluginDefine) {
                 }
             });
         },
-        cmd: (command) => {
-            command.trigger = Array.isArray(command.trigger) ? command.trigger : [command.trigger];
-            console.log(`插件 ${pluginId} 注册了命令: `, ...command.trigger);
-            pluginDefine.commands.push(command);
+        cmd: (trigger, fn, config = {}) => {
+            command.trigger = Array.isArray(trigger) ? trigger : [trigger];
+            console.log(`插件 ${pluginId} 注册了命令: `, ...trigger);
+            pluginDefine.commands.push({
+                trigger,
+                fn,
+                description: config.description ?? ""
+            });
         },
         assert: (pluginId) => {
             const plugin = plugins[pluginId];

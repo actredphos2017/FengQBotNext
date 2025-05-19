@@ -15,10 +15,8 @@
  */
 
 /**
- * @typedef {Object} Command
- * @property {string | string[]} trigger - 命令唤起名
+ * @typedef {Object} CommandConfig
  * @property {string} description - 命令描述
- * @property {function(Context): void | Promise<void>} fn - 命令执行函数
  */
 
 /**
@@ -27,7 +25,7 @@
  * @property {function(string, any): void} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (any | Promise<any>)): Promise<any>} withPlugin - 导入并使用插件接口
- * @property {function(Command)} cmd - 注册命令
+ * @property {(trigger: string | string[], fn: (context: Context) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {{

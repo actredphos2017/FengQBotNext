@@ -1,5 +1,5 @@
 /**
- * @type {import("../types/plugins").PluginDefine}
+ * @type {import("../types/plugins").PluginInfo}
  */
 export default {
     config: {
@@ -14,12 +14,13 @@ export default {
             api.reject("This plugin need util plugin.");
             return;
         }
-        api.cmd({
-            trigger: ["test", "ping"],
-            description: "测试命令",
-            fn: (ctx) => {
-                ctx.reply("pong");
-            }
+        api.cmd(["test", "ping"], (ctx) => {
+            ctx.quick_action([{
+                type: "text",
+                data: {
+                    text: "pong"
+                }
+            }]);
         });
     }
 }
