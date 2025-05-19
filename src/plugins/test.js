@@ -9,18 +9,17 @@ export default {
         author: "Sakulin",
         version: "1.0.0"
     },
-    async setup(api) {
+    setup(api) {
         if (!api.assert("util")) {
-            api.reject("This plugin need util plugin.");
+            api.reject("这个插件依赖于 Util 插件");
             return;
         }
-        api.cmd(["test", "ping"], (ctx) => {
-            ctx.quick_action([{
-                type: "text",
-                data: {
-                    text: "pong"
-                }
-            }]);
+        api.cmd(["test", "ping"], (ch) => {
+            ch.addAt(ctx.user_id);
+            ch.addText("昂？");
+            if (ch.isGroup) ch.goWithReply(ch.userId);
+            else ch.go();
         });
     }
 }
+

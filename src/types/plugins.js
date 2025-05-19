@@ -20,12 +20,31 @@
  */
 
 /**
+ * @typedef {{
+ *     group_id: number,
+ *     groupId: number,
+ *     user_id: number,
+ *     userId: number,
+ *     message_type: string,
+ *     messageType: string,
+ *     quick_action: (...args: any[]) => any,
+ *     quickAction: (...args: any[]) => any,
+ *     addText: (text: string) => void,
+ *     addImage: (image: string | Blob | Buffer, name?: string) => Promise<void>,
+ *     addAt: (who: number) => void,
+ *     go: () => void,
+ *     goWithReply: (who: number) => void,
+ *     isGroup: boolean
+ * }} ContextHelper
+ */
+
+/**
  * @typedef {Object} PluginAPI
  * @property {function(string, EventListener): void} listen - 注册事件监听器
  * @property {function(string, any): void} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (any | Promise<any>)): Promise<any>} withPlugin - 导入并使用插件接口
- * @property {(trigger: string | string[], fn: (context: Context) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
+ * @property {(trigger: string | string[], fn: (ch: ContextHelper) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {{

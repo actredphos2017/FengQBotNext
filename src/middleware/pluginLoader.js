@@ -172,6 +172,73 @@ async function loadPlugin(pluginDefine) {
     return pluginDefine;
 }
 
+/**
+ * @param {Context} ctx - 上下文对象，包含消息相关信息和操作方法。
+ * @returns {import("../types/plugins.js").ContextHelper}
+ */
+function contextHelper(ctx) {
+
+    let buffer = [];
+
+    return {
+        group_id: ctx.group_id,
+        groupId: ctx.group_id,
+        user_id: ctx.user_id,
+        userId: ctx.user_id,
+        message_type: ctx.message_type,
+        messageType: ctx.message_type,
+        quick_action(...args) {
+            return ctx.quick_action(...args);
+        },
+        quickAction(...args) {
+            return ctx.quick_action(...args);
+        },
+        addText(text) {
+            buffer.push({
+                type: "text",
+                data: { text }
+            });
+        },
+        async addImage(image, name = undefined) {
+            if (typeof image !== 'string') {
+                if (image instanceof Blob) {
+                    image = Buffer.from(await image.arrayBuffer()).toString("base64");
+                } else if (image instanceof Buffer) {
+                    image = image.toString('base64');
+                }
+            } else {
+                console.error('不支持的图片类型');
+                return;
+            }
+
+            if (!image.startsWith("base64://"))
+                image = `base64://${image}`;
+
+            buffer.push({
+                type: "image",
+                data: { file: image, name }
+            });
+        },
+        addAt(who) {
+            buffer.push({
+                type: "at",
+                data: {id: who}
+            })
+        },
+        go() {
+            ctx.quick_action(buffer);
+            buffer = [];
+        },
+        goWithReply(who) {
+            ctx.quick_action([{
+                type: "reply", data: {id: who}
+            }, ...buffer]);
+            buffer = [];
+        },
+        isGroup: ctx.message_type === "group"
+    }
+}
+
 export default [
     {
         type: "middleware",
@@ -224,7 +291,7 @@ export default [
                 }
                 console.log(`命令 ${cmdName} 已找到`);
 
-                command.fn(context);
+                command.fn(contextHelper(context));
             }
         }
     }
