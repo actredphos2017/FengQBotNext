@@ -102,7 +102,7 @@ export default {
         });
 
         async function pushMessage(who, groupId, message) {
-            if (/\s*/.test(message)) return;
+            if (/^\s*$/.test(message)) return;
             const store = await getStore();
             if (!store.message[groupId]) {
                 store.message[groupId] = [];
@@ -128,7 +128,7 @@ export default {
                 return;
             }
 
-            const ctx = (await getStore()).message[String(ch.groupId)].filter(e => e.timestamp > Date.now() - aiConfig.timeRange).map(e => e.message).join("\n");
+            const ctx = ((await getStore()).message[String(ch.groupId)] ?? []).filter(e => e.timestamp > Date.now() - aiConfig.timeRange).map(e => e.message).join("\n");
 
             const response = await axios({
                 url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -162,13 +162,13 @@ export default {
                     } catch (_) {
                     }
                 } else if (part) {
-                    if (/\s*/.test(part)) continue;
+                    if (/^\s*$/.test(part)) continue;
                     ch.text(part);
                 }
             }
             await ch.go();
 
-            await pushMessage(String(ch.groupId), `[你] ${content}`);
+            await pushMessage("你", String(ch.groupId), content);
         });
     }
 }
