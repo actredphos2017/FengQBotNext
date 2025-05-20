@@ -1,3 +1,4 @@
+//PLUGINX
 const imgSourceMap = {
     "二次元": "https://app.zichen.zone/api/acg/api.php",
     "原神": "https://t.alcy.cc/ysz",
@@ -11,16 +12,13 @@ const imgSourceMap = {
 
 const defaultSource = "二次元";
 
-/**
- * @type {import("../types/plugins").PluginInfo}
- */
 export default {
     config: {
-        id: "saku",
+        id: "sakulin",
         name: "红磷的工具箱",
         description: "看看图，可添加不同图源作为参数，例如发送 “#saku 图 原神” ，可选的图源有：" + Object.keys(imgSourceMap).map(e => ((e == defaultSource) ? (e + "（默认）") : e)).join("、"),
         author: "Sakulin",
-        version: "1.0.0"
+        version: "1.0.2"
     },
     setup(api) {
         api.cmd(["image", "tu", "图"], async (ch, type) => {

@@ -14,8 +14,8 @@ export default {
             api.reject("这个插件依赖于 Util 插件");
             return;
         }
-        api.cmd(["test", "ping"], async (ch) => {
-            await ch.at().text("干嘛？").face("ww").goAutoReply();
+        api.cmd(["test", "ping", "在？"], async (ch) => {
+            await ch.at().text("你干嘛？").face("ww").goAutoReply();
         });
     }
 }

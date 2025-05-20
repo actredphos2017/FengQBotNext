@@ -133,7 +133,7 @@ async function loadPlugins(hard = false) {
                 }
                 for (const trigger of command.trigger) {
                     if (quickCommands[trigger] && quickCommands[trigger].pluginId !== plugin.instance.config.id) {
-                        logger.error(`为插件 ${plugin.instance.config.id} 注册快捷命令 ${trigger} 时出错：该命令已被插件 ${quickCommands[trigger].pluginId} 注册`);
+                        logger.error(`为插件 ${plugin.instance.config.id} 注册快捷命令 ${trigger} 时出错：同名命令已被插件 ${quickCommands[trigger].pluginId} 注册`);
                         continue;
                     }
                     const isCovered = quickCommands[trigger];
@@ -338,7 +338,11 @@ function contextHelper(ctx, qqBot) {
             return await this.go();
         },
         isGroup: ctx.message_type === "group",
-        context: ctx
+        context: ctx,
+        getPureMessage() {
+            if (ctx.message.some(e => (e.type !== "text"))) return undefined;
+            return ctx.message.map(e => e.data.text).join();
+        }
     }
 }
 
@@ -381,7 +385,7 @@ export function pluginLoader(config = {}) {
                     for (const [pluginId, fn] of Object.entries(superCommands.beforeActivate)) {
                         const res = await fn(contextHelper(context, qqBot));
                         if (res === false) {
-                            logger.log(`插件 ${pluginId} 的超级命令在 beforeActivate 时机阻止了命令执行`);
+                            logger.log(`插件 ${pluginId} 的超级命令在 beforeActivate 时机阻止了命令默认执行`);
                             return;
                         }
                     }
@@ -399,7 +403,7 @@ export function pluginLoader(config = {}) {
                     for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
                         const res = await fn(contextHelper(context, qqBot));
                         if (res === false) {
-                            logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令执行`);
+                            logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令默认执行`);
                             return;
                         }
                     }
@@ -451,7 +455,7 @@ export function pluginLoader(config = {}) {
                     for (const [pluginId, fn] of Object.entries(superCommands.onFinally)) {
                         const res = await fn(contextHelper(context, qqBot));
                         if (res === false) {
-                            logger.log(`插件 ${pluginId} 的超级命令在 onFinally 时机阻止了命令执行`);
+                            logger.log(`插件 ${pluginId} 的超级命令在 onFinally 时机阻止了命令默认执行`);
                             return;
                         }
                     }

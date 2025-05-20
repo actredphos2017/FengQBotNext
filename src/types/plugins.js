@@ -23,7 +23,7 @@
 
 
 /**
- * @typedef {Object} ContextHelper
+ * @typedef {Object} ContextHelper - 上下文小帮手
  * @property {number} group_id - 群组 ID
  * @property {number} groupId - 群组 ID（驼峰命名接口）
  * @property {number} user_id - 用户 ID
@@ -34,10 +34,11 @@
  * @property {(...args: any[]) => any} quickAction - 快速操作方法（驼峰命名接口）
  * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例
  * @property {(image: string | Blob | Buffer, name?: string) => ContextHelper} image - 设置图片内容并返回上下文助手实例
- * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例
+ * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
  * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
  * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
+ * @property {() => string | undefined} getPureMessage - 当获得的消息为纯文本时，返回文本对象。当消息包含艾特、图片、表情、文件等信息时，会返回 undefined
  * @property {boolean} isGroup - 是否为群组消息
  * @property {Object} context - 原始上下文对象
  */
@@ -55,7 +56,7 @@
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (any | Promise<any>)): Promise<any>} withPlugin - 导入并使用插件接口
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
- * @property {(trigger: (ch: ContextHelper) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，需要返回是否继续执行默认命令
+ * @property {(trigger: (ch: ContextHelper) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {import("../core/logger.js").Logger} logger - 日志记录器
