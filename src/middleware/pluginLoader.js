@@ -1,13 +1,58 @@
 import {defineMiddleware} from "../core/middleware.js";
 import path from "path";
 import crypto from 'crypto';
-import {promises as fsPromises} from 'fs';
+import {promises as fsPromises, existsSync} from 'fs';
 import {fileURLToPath} from "node:url";
-import {Botconfig as config} from "../lib/config.js";
 import pipe from "../core/pipe.js";
 import { getLoadLevel } from "../types/plugins.js";
 import { logger } from "../core/logger.js";
 import { getFace } from "../lib/faces.js";
+import sqlite3Prototype from 'sqlite3';
+import path from 'path';
+
+const sqlite3 = sqlite3Prototype.verbose();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+let db = undefined;
+
+function databaseInit() {
+    db.run(`DROP TABLE IF EXISTS plugin_store`);
+    db.run(`CREATE TABLE plugin_store (plugin_id VARCHAR(64) PRIMARY KEY, data TEXT default "")`);
+}
+
+/**
+ * @param {string} pluginId
+ * @returns {Promise<string>}
+ */
+function getPluginStore(pluginId) {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT data FROM plugin_store WHERE plugin_id = ?`, [pluginId], (err, row) => {
+            if (err) {
+                reject(err);
+            } else if (row) {
+                resolve(row.data);
+            } else {
+                resolve("");
+            }
+        })
+    })
+}
+
+/**
+ * @param {string} pluginId
+ * @param {string} data
+ * @returns {Promise<void>}
+ */
+function setPluginStore(pluginId, data) {
+    return new Promise((resolve, reject) => {
+        db.run(`INSERT OR REPLACE INTO plugin_store (plugin_id, data) VALUES (?, ?)`, [pluginId, data], (err) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        })
+    })
+}
 
 /**
  * @typedef {Object} PluginDefine
@@ -75,10 +120,12 @@ async function loadPlugins(hard = false) {
                     const module = await import(`file://${pluginPath}?t=${Date.now()}`);
                     const pluginInstance = module.default;
                     const currentMD5 = crypto.createHash('md5').update(await fsPromises.readFile(pluginPath)).digest('hex');
-                    const existingPlugin = plugins[pluginInstance.config.id];
-                    if (existingPlugin && existingPlugin.hash === currentMD5) {
-                        logger.log(`插件 ${pluginInstance.config.id} 未发生更改，无需重新加载`);
-                        continue;
+                    if (!hard) {
+                        const existingPlugin = plugins[pluginInstance.config.id];
+                        if (existingPlugin && existingPlugin.hash === currentMD5) {
+                            logger.log(`插件 ${pluginInstance.config.id} 未发生更改，无需重新加载`);
+                            continue;
+                        }
                     }
 
                     plugins[pluginInstance.config.id] = {
@@ -226,6 +273,12 @@ async function loadPlugin(pluginDefine) {
         logger,
         log(...args) {
             logger.log(...args);
+        },
+        getStore: async () => {
+            return await getPluginStore(pluginId);
+        },
+        setStore: async (data) => {
+            await setPluginStore(pluginId, data);
         }
     });
 
@@ -357,6 +410,19 @@ function contextHelper(ctx, qqBot) {
  */
 
 export function pluginLoader(config = {}) {
+
+    const storeDbPath = path.join(__dirname, '..', 'store.db');
+    if (existsSync(storeDbPath)) {
+        db = new sqlite3.Database(storeDbPath);
+    } else {
+        logger.log('数据库 ../store.db 不存在，正在创建...');
+        db = new sqlite3.Database(storeDbPath, (err) => {
+            if (err) {
+                logger.error('中间件初始化失败：创建数据库文件 ../store.db 时出错 ', err);
+            }
+        });
+        db.serialize(databaseInit);
+    }
 
     config = {
         activate: config.activate ?? ((context) => {

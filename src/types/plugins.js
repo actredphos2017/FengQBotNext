@@ -61,6 +61,8 @@
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {import("../core/logger.js").Logger} logger - 日志记录器
  * @property {function(...any): void} log - 日志记录器
+ * @property {function(): Promise<string>} getStore - 获取插件持久化数据
+ * @property {function(string): Promise<void>} setStore - 设置插件持久化数据
  */
 
 /**
