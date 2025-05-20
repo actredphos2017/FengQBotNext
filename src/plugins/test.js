@@ -1,3 +1,6 @@
+/**
+ * @type {import("../types/plugins").PluginInfo}
+ */
 export default {
     config: {
         id: "test",
@@ -12,9 +15,7 @@ export default {
             return;
         }
         api.cmd(["test", "ping"], async (ch) => {
-            ch.addAt();
-            ch.addText("昂？");
-            await ch.goAutoReply();
+            await ch.at().text("干嘛？").face("ww").goAutoReply();
         });
     }
 }

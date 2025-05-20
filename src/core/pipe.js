@@ -25,12 +25,16 @@ export default {
      * @param {string} event - 要触发的事件名称。
      * @param {any} data - 传递给监听器的参数。
      */
-    emit: function (event, data) {
-        this.eventTriggers.filter((trigger) => {
+    emit: async function (event, data) {
+        for (const trigger of this.eventTriggers.filter((trigger) => {
             return trigger.event === event;
-        }).forEach((trigger) => {
-            trigger.handler(data);
-        });
+        })) {
+            try {
+                await trigger.handler(data);
+            } catch (error) {
+                console.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
+            }
+        }
     },
 
     /**

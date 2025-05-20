@@ -17,38 +17,41 @@
 /**
  * @typedef {Object} CommandConfig
  * @property {string} description - 命令描述
+ * @property {boolean} quickCommandRegisterIgnore - 是否忽略快速命令注册
  */
 
+
+
 /**
- * @typedef {{
- *     group_id: number,
- *     groupId: number,
- *     user_id: number,
- *     userId: number,
- *     message_type: string,
- *     messageType: string,
- *     quick_action: (...args: any[]) => any,
- *     quickAction: (...args: any[]) => any,
- *     addText: (text: string) => void,
- *     addImage: (image: string | Blob | Buffer, name?: string) => Promise<void>,
- *     addAt: (who: number) => void,
- *     go: () => Promise<void>,
- *     goWithReply: (who: number) => Promise<void>,
- *     goAutoReply: (who: number) => Promise<void>,
- *     isGroup: boolean
- * }} ContextHelper
+ * @typedef {Object} ContextHelper
+ * @property {number} group_id - 群组 ID
+ * @property {number} groupId - 群组 ID（驼峰命名接口）
+ * @property {number} user_id - 用户 ID
+ * @property {number} userId - 用户 ID（驼峰命名接口）
+ * @property {string} message_type - 消息类型
+ * @property {string} messageType - 消息类型（驼峰命名接口）
+ * @property {(...args: any[]) => any} quick_action - 快速操作方法
+ * @property {(...args: any[]) => any} quickAction - 快速操作方法（驼峰命名接口）
+ * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例
+ * @property {(image: string | Blob | Buffer, name?: string) => ContextHelper} image - 设置图片内容并返回上下文助手实例
+ * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例
+ * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
+ * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
+ * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
+ * @property {boolean} isGroup - 是否为群组消息
  */
 
 /**
  * @typedef {Object} PluginAPI
  * @property {function(string, EventListener): void} listen - 注册事件监听器
- * @property {function(string, any): void} send - 发送事件
+ * @property {function(string, any): Promise<void>} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (any | Promise<any>)): Promise<any>} withPlugin - 导入并使用插件接口
- * @property {(trigger: string | string[], fn: (ch: ContextHelper) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
+ * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {import("../core/logger.js").Logger} logger - 日志记录器
+ * @property {function(...any): void} log - 日志记录器
  */
 
 /**

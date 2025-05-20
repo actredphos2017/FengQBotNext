@@ -23,23 +23,19 @@ export default {
         version: "1.0.0"
     },
     setup(api) {
-        api.cmd(["image", "tu", "图"], async (ch) => {
-            const source = imgSourceMap[defaultSource];
+        api.cmd(["image", "tu", "图"], async (ch, type) => {
+            const source = type ? (imgSourceMap[type] ?? imgSourceMap[defaultSource]) : imgSourceMap[defaultSource];
             try {
                 const response = await fetch(source);
                 if (!response.ok) {
-                    api.logger.error(`获取时发生错误: ${response.status} ${response.statusText}`);
-                    ch.addText(`获取时发生错误：${response.status} ${response.statusText}`);
+                    ch.text(`获取时发生错误：${response.status} ${response.statusText}`);
                 } else {
-                    api.logger.log(`图片获取成功`);
-                    await ch.addImage(await response.blob());
+                    ch.image(await response.blob());
                 }
             } catch (e) {
-                api.logger.error(`获取时发生错误: ${JSON.stringify(e)}`);
-                ch.addText(`获取时发生错误：${JSON.stringify(e)}`);
+                ch.text(`获取时发生错误：${JSON.stringify(e)}`);
             } finally {
-                await ch.go();
-                api.logger.log(`图片获取结束`);
+                await ch.goAutoReply();
             }
         });
     }
