@@ -39,6 +39,13 @@
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
  * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
  * @property {boolean} isGroup - 是否为群组消息
+ * @property {Object} context - 原始上下文对象
+ */
+
+/**
+ * @typedef {Object} SuperCommandConfig
+ * @property {string} description - 超级命令描述
+ * @property {"beforeActivate" | "afterActivate" | "onFinally"} time - 执行时机
  */
 
 /**
@@ -48,6 +55,7 @@
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (any | Promise<any>)): Promise<any>} withPlugin - 导入并使用插件接口
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
+ * @property {(trigger: (ch: ContextHelper) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，需要返回是否继续执行默认命令
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {import("../core/logger.js").Logger} logger - 日志记录器
