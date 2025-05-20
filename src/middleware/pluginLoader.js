@@ -6,6 +6,7 @@ import {fileURLToPath} from "node:url";
 import {Botconfig as config} from "../lib/config.js";
 import pipe from "../core/pipe.js";
 import { getLoadLevel } from "../types/plugins.js";
+import { logger } from "../core/logger.js";
 
 /**
  * @typedef {Object} PluginDefine
@@ -23,7 +24,7 @@ import { getLoadLevel } from "../types/plugins.js";
  * }[]} commands - 插件注册的命令
  */
 
-const CMD_PREFIX = config?.cmd?.prefix ?? '#';
+const CMD_PREFIX = config?.cmd?.prefix ?? '$';
 
 /**
  * @type {{ [key: string]: PluginDefine }}
@@ -41,13 +42,13 @@ async function loadPlugins() {
             if (file.endsWith('.js')) {
                 const pluginPath = path.join(pluginsDir, file);
                 try {
-                    console.log(`尝试加载插件: ${pluginPath}`);
-                    const module = await import(`${pluginPath}?t=${Date.now()}`);
+                    logger.log(`尝试加载插件: ${pluginPath}`);
+                    const module = await import(`file://${pluginPath}?t=${Date.now()}`);
                     const pluginInstance = module.default;
                     const currentMD5 = crypto.createHash('md5').update(await fsPromises.readFile(pluginPath)).digest('hex');
                     const existingPlugin = plugins[pluginInstance.config.id];
                     if (existingPlugin && existingPlugin.hash === currentMD5) {
-                        console.log(`插件 ${pluginInstance.config.id} 未发生更改，无需重新加载`);
+                        logger.log(`插件 ${pluginInstance.config.id} 未发生更改，无需重新加载`);
                         continue;
                     }
 
@@ -62,15 +63,14 @@ async function loadPlugins() {
                         commands: []
                     }
 
-                    console.log(`插件 ${pluginInstance.config.id} 将被加载`);
+                    logger.log(`插件 ${pluginInstance.config.id} 将被加载`);
                 } catch (error) {
-                    console.error(`加载插件 ${file} 时出错:`, error);
+                    logger.error(`加载插件 ${file} 时出错:`, error);
                 }
             }
         }
-
     } catch (error) {
-        console.error('加载插件目录失败:', error);
+        logger.error('加载插件目录失败:', error);
     }
 
     for (const plugin of Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; }).toSorted((a, b) => b.level - a.level)) {
@@ -78,10 +78,10 @@ async function loadPlugins() {
             try {
                 await loadPlugin(plugin);
                 plugin.loaded = true;
-                console.log(`插件 ${plugin.instance.config.id} 已成功加载`);
+                logger.log(`插件 ${plugin.instance.config.id} 已成功加载`);
             } catch (error) {
                 plugin.error = true;
-                console.error(`加载插件 ${plugin.instance.config.id} 时出错:`, error);
+                logger.error(`加载插件 ${plugin.instance.config.id} 时出错:`, error);
             }
         }
     }
@@ -97,14 +97,14 @@ async function loadPlugin(pluginDefine) {
 
     await pluginDefine.instance.setup({
         listen: (event, listener) => {
-            console.log(`插件 ${pluginId} 注册了事件监听器: ${event}`);
+            logger.log(`插件 ${pluginId} 注册了事件监听器: ${event}`);
             pipe.addTrigger({
                 event,
                 handler: listener
             });
         },
         send: (event, data) => {
-            console.log(`插件 ${pluginId} 发送了事件: ${event}`, data);
+            logger.log(`插件 ${pluginId} 发送了事件: ${event}`, data);
             pipe.emit(event, data);
         },
         expose: (api) => {
@@ -116,7 +116,7 @@ async function loadPlugin(pluginDefine) {
             if (plugin) {
                 api = plugin.api;
             } else {
-                console.error(`插件 ${pluginId} 试图寻找 ${pluginId} 但未找到`);
+                logger.error(`插件 ${pluginId} 试图寻找 ${pluginId} 但未找到`);
                 api = undefined;
             }
             return new Promise(async (resolve, reject) => {
@@ -134,7 +134,7 @@ async function loadPlugin(pluginDefine) {
         },
         cmd: (trigger, fn, config = {}) => {
             trigger = Array.isArray(trigger) ? trigger : [trigger];
-            console.log(`插件 ${pluginId} 注册了命令: `, ...trigger);
+            logger.log(`插件 ${pluginId} 注册了命令: `, ...trigger);
             pluginDefine.commands.push({
                 trigger,
                 fn,
@@ -150,22 +150,12 @@ async function loadPlugin(pluginDefine) {
             }
         },
         reject: (reason) => {
-            console.error(`插件 ${pluginId} 拒绝加载: ${reason}`);
+            logger.error(`插件 ${pluginId} 拒绝加载: ${reason}`);
             pluginDefine.rejected = true;
         },
-        logger: {
-            info: (message) => {
-                console.log(`插件 ${pluginId} 信息: ${message}`);
-            },
-            warn: (message) => {
-                console.warn(`插件 ${pluginId} 警告: ${message}`);
-            },
-            error: (message) => {
-                console.error(`插件 ${pluginId} 错误: ${message}`);
-            },
-            debug: (message) => {
-                console.debug(`插件 ${pluginId} 调试: ${message}`);
-            }
+        logger,
+        log(...args) {
+            logger.log(...args);
         }
     });
 
@@ -174,9 +164,10 @@ async function loadPlugin(pluginDefine) {
 
 /**
  * @param {Context} ctx - 上下文对象，包含消息相关信息和操作方法。
+ * @param {Object} qqBot
  * @returns {import("../types/plugins.js").ContextHelper}
  */
-function contextHelper(ctx) {
+function contextHelper(ctx, qqBot) {
 
     let buffer = [];
 
@@ -196,7 +187,7 @@ function contextHelper(ctx) {
         addText(text) {
             buffer.push({
                 type: "text",
-                data: { text }
+                data: { text: String(text) }
             });
         },
         async addImage(image, name = undefined) {
@@ -207,7 +198,7 @@ function contextHelper(ctx) {
                     image = image.toString('base64');
                 }
             } else {
-                console.error('不支持的图片类型');
+                logger.error('不支持的图片类型');
                 return;
             }
 
@@ -219,21 +210,62 @@ function contextHelper(ctx) {
                 data: { file: image, name }
             });
         },
-        addAt(who) {
+        addAt(who = ctx.user_id) {
             buffer.push({
                 type: "at",
-                data: {id: who}
-            })
+                data: { qq: who }
+            });
+            buffer.push({
+                type: "text",
+                data: { text: " " }
+            });
         },
-        go() {
-            ctx.quick_action(buffer);
+        async go() {
+            let prepareLog = JSON.stringify(buffer);
+            if (prepareLog.length > 50) {
+                prepareLog = prepareLog.slice(0, 50) + "...";
+            }
+            logger.log("发送消息：", prepareLog);
+            if (ctx.message_type === "group") {
+                await qqBot.send_group_msg({
+                    group_id: ctx.group_id,
+                    message: buffer
+                });
+            } else {
+                await qqBot.send_private_msg({
+                    user_id: ctx.user_id,
+                    message: buffer
+                });
+            }
             buffer = [];
         },
-        goWithReply(who) {
-            ctx.quick_action([{
-                type: "reply", data: {id: who}
-            }, ...buffer]);
+        async goWithReply() {
+            let prepareLog = JSON.stringify(buffer);
+            if (prepareLog.length > 50) {
+                prepareLog = prepareLog.slice(0, 50) + "...";
+            }
+            logger.log("发送消息：", prepareLog);
+            if (ctx.message_type === "group") {
+                await qqBot.send_group_msg({
+                    group_id: ctx.group_id,
+                    message: [{
+                        type: "reply", data: {id: ctx.message_id}
+                    }, ...buffer]
+                });
+            } else {
+                await qqBot.send_private_msg({
+                    user_id: ctx.user_id,
+                    message: buffer
+                });
+            }
             buffer = [];
+        },
+        async goAutoReply() {
+            if (this.isGroup) {
+                return await this.goWithReply();
+            } else {
+                return await this.go();
+            }
         },
         isGroup: ctx.message_type === "group"
     }
@@ -250,7 +282,7 @@ export default [
         type: "trigger",
         value: {
             event: "NAPCAT_MESSAGE",
-            handler: async (context) => {
+            handler: async ({context, qqBot}) => {
                 if (context.message[0].type !== 'text') {
                     return;
                 }
@@ -265,33 +297,37 @@ export default [
                 const pluginId = parts[0];
                 const cmdName = parts[1];
 
-                console.log("可用插件：");
+                logger.log("可用插件：");
                 Object.entries(plugins).forEach(([pluginId, plugin]) => {
-                    console.log(` - [${pluginId}]: ${plugin.instance.config.name}`);
+                    logger.log(` - [${pluginId}]: ${plugin.instance.config.name}`);
                 });
 
                 const plugin = plugins[pluginId];
                 if (!plugin) {
-                    console.log(`插件 ${pluginId} 未找到`);
+                    logger.log(`插件 ${pluginId} 未找到`);
                     return;
                 }
 
-                console.log(`插件 ${pluginId} 已找到`);
-                console.log(`可用命令：`);
+                logger.log(`插件 ${pluginId} 已找到`);
+                logger.log(`可用命令：`);
                 plugin.commands.forEach((command) => {
-                    console.log(`  [${command.trigger.join(", ")}]: ${command.description}`);
+                    logger.log(`  [${command.trigger.join(", ")}]: ${command.description}`);
                 });
                 const command = plugin.commands.find((command) => {
                     return command.trigger.includes(cmdName);
                 });
 
                 if (!command) {
-                    console.log(`命令 ${cmdName} 未找到`);
+                    logger.log(`命令 ${cmdName} 未找到`);
                     return;
                 }
-                console.log(`命令 ${cmdName} 已找到`);
+                logger.log(`命令 ${cmdName} 已找到`);
 
-                command.fn(contextHelper(context));
+                try {
+                    await command.fn(contextHelper(context, qqBot));
+                } catch (e) {
+                    logger.error(`命令 ${cmdName} 执行出错：`, e);
+                }
             }
         }
     }

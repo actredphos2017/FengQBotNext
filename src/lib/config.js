@@ -14,4 +14,3 @@ export function saveConfig(file, data) {
     fs.writeFileSync(configPath, yaml.dump(data));
 }
 export const Botconfig = await loadConfig('bot');
-export const PermissionConfig = await loadConfig('permission');

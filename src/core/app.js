@@ -1,11 +1,13 @@
 import pipe from "./pipe.js";
+import { setLogger, logger } from "./logger.js";
 
 /**
  * @typedef {{
- *     instance: {middlewares: {[key: import("./middleware.js").MiddlewareLifecycleId]: ((base: any)=>(any))[]}},
+ *     instance: any,
  *     middleware: (mw: (import("./middleware.js").Middleware) | import("./middleware.js").Middleware[]) => AppInstance,
  *     mount: (obj: Mountable) => Promise<AppInstance>;
  *     trigger: (trigger: import("./pipe.js").EventTrigger) => AppInstance;
+ *     logger: (logger: import("./logger.js").Logger) => AppInstance;
  *     use: (items: any) => AppInstance;
  * }} AppInstance
  */
@@ -21,18 +23,19 @@ function createApp() {
         instance: {
             middlewares: {},
             triggers: [],
-            target: null
+            target: null,
+            logger: console
         },
         use(items) {
             if (Array.isArray(items)) {
                 for (const item of items) {
-                    if (item.type === "middleware") {
-                        this.middleware(item.value);
-                    } else if (item.type === "trigger") {
-                        this.trigger(item.value);
-                    }
+                    this[item.type](item.value);
                 }
             }
+        },
+        logger(logger) {
+            this.instance.logger = logger;
+            return this;
         },
         trigger(trigger) {
             this.instance.triggers.push(trigger);
@@ -55,13 +58,15 @@ function createApp() {
         },
         async mount(obj) {
 
+            setLogger(this.instance.logger);
+
             const middlewareCount = Object.values(this.instance.middlewares).reduce((sum, handlers) => sum + handlers.length, 0);
-            console.log(`已启用的中间件 ${middlewareCount} 个`);
+            logger.log(`已启用的中间件 ${middlewareCount} 个`);
             const triggerCount = this.instance.triggers.length;
             for (const trigger of this.instance.triggers) {
                 pipe.addTrigger(trigger);
             }
-            console.log(`已启用的触发器 ${triggerCount} 个`);
+            logger.log(`已启用的触发器 ${triggerCount} 个`);
 
             this.instance.target = obj;
 
@@ -73,7 +78,7 @@ function createApp() {
                 }
             }
 
-            console.log(`开始挂载实例...`);
+            logger.log(`开始挂载实例...`);
 
             await obj.init(async (flag, data) => {
 
@@ -109,7 +114,7 @@ function createApp() {
             return this;
         }
     };
-    console.log("App 实例已完成创建");
+    logger.log("App 实例已完成创建");
     return app;
 }
 

@@ -32,8 +32,9 @@
  *     addText: (text: string) => void,
  *     addImage: (image: string | Blob | Buffer, name?: string) => Promise<void>,
  *     addAt: (who: number) => void,
- *     go: () => void,
- *     goWithReply: (who: number) => void,
+ *     go: () => Promise<void>,
+ *     goWithReply: (who: number) => Promise<void>,
+ *     goAutoReply: (who: number) => Promise<void>,
  *     isGroup: boolean
  * }} ContextHelper
  */
@@ -47,12 +48,7 @@
  * @property {(trigger: string | string[], fn: (ch: ContextHelper) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
- * @property {{
- *     info: function(string): void,
- *     warn: function(string): void,
- *     error: function(string): void,
- *     debug: function(string): void
- * }} logger - 日志记录器
+ * @property {import("../core/logger.js").Logger} logger - 日志记录器
  */
 
 /**

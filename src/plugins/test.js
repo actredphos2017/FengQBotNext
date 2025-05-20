@@ -1,6 +1,3 @@
-/**
- * @type {import("../types/plugins").PluginInfo}
- */
 export default {
     config: {
         id: "test",
@@ -14,11 +11,10 @@ export default {
             api.reject("这个插件依赖于 Util 插件");
             return;
         }
-        api.cmd(["test", "ping"], (ch) => {
-            ch.addAt(ctx.user_id);
+        api.cmd(["test", "ping"], async (ch) => {
+            ch.addAt();
             ch.addText("昂？");
-            if (ch.isGroup) ch.goWithReply(ch.userId);
-            else ch.go();
+            await ch.goAutoReply();
         });
     }
 }

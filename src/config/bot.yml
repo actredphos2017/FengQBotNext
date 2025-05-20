@@ -1,0 +1,12 @@
+bot:
+  protocol: "ws"
+  host: "8.130.126.103"
+  port: 3001
+  accessToken: "fenglin666"
+  throwPromise: true
+  reconnection:
+    enabled: true
+    attempts: 10
+    delay: 5000
+cmd:
+ prefix: "$"
