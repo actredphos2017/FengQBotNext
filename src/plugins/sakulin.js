@@ -48,11 +48,17 @@ export default {
     setup(api) {
 
         async function getStore() {
-            return (await api.getStore()) ?? defaultStore;
+            const store = await api.getStore();
+            if (!store) {
+                await api.setStore(JSON.stringify(defaultStore));
+                return defaultStore;
+            } else {
+                return JSON.parse(store);
+            }
         }
 
         async function setStore(data) {
-            await api.setStore(data);
+            await api.setStore(JSON.stringify(data));
         }
 
         api.cmd(["image", "tu", "图"], async (ch, type) => {
@@ -104,8 +110,8 @@ export default {
         async function pushMessage(who, groupId, message) {
             if (/^\s*$/.test(message)) return;
             const store = await getStore();
-            if (!store.message[groupId]) {
-                store.message[groupId] = [];
+            if (!store.message[String(groupId)]) {
+                store.message[String(groupId)] = [];
             }
             store.message[groupId].push({
                 message: `[${who}] ${message}`,
@@ -145,7 +151,7 @@ export default {
                         },
                         {
                             "role": "assistant",
-                            "content": "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\""
+                            "content": "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"，其中， 161009029 是你"
                         }
                     ],
                     model: "qwen-plus",
