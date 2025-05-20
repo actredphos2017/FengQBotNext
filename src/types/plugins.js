@@ -38,7 +38,7 @@
  * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
  * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
- * @property {() => string | undefined} getPureMessage - 当获得的消息为纯文本时，返回文本对象。当消息包含艾特、图片、表情、文件等信息时，会返回 undefined
+ * @property {(onlyText: boolean = true) => string | undefined} getPureMessage - 当获得的消息为纯文本时，返回文本对象。onlyText 为 true 时，当消息包含艾特、图片、表情、文件等信息时，会返回 undefined
  * @property {boolean} isGroup - 是否为群组消息
  * @property {Object} context - 原始上下文对象
  */
@@ -61,7 +61,7 @@
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {import("../core/logger.js").Logger} logger - 日志记录器
  * @property {function(...any): void} log - 日志记录器
- * @property {function(): Promise<string>} getStore - 获取插件持久化数据
+ * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据
  */
 

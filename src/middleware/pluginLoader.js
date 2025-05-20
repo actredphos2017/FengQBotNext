@@ -8,7 +8,6 @@ import { getLoadLevel } from "../types/plugins.js";
 import { logger } from "../core/logger.js";
 import { getFace } from "../lib/faces.js";
 import sqlite3Prototype from 'sqlite3';
-import path from 'path';
 
 const sqlite3 = sqlite3Prototype.verbose();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -21,7 +20,7 @@ function databaseInit() {
 
 /**
  * @param {string} pluginId
- * @returns {Promise<string>}
+ * @returns {Promise<string | undefined>}
  */
 function getPluginStore(pluginId) {
     return new Promise((resolve, reject) => {
@@ -31,7 +30,7 @@ function getPluginStore(pluginId) {
             } else if (row) {
                 resolve(row.data);
             } else {
-                resolve("");
+                resolve(undefined);
             }
         })
     })
@@ -251,7 +250,7 @@ async function loadPlugin(pluginDefine) {
         },
         super: (fn, config) => {
             const time = config?.time ?? "afterActivate";
-            if (typeof time === "string" && Object.keys(superCommands).indexOf(time) === -1) {
+            if (typeof time === "string" && !Object.keys(superCommands).includes(time)) {
                 logger.error(`插件 ${pluginId} 试图注册超级命令，但时机 ${time} 不存在`);
                 return;
             }
@@ -392,9 +391,19 @@ function contextHelper(ctx, qqBot) {
         },
         isGroup: ctx.message_type === "group",
         context: ctx,
-        getPureMessage() {
-            if (ctx.message.some(e => (e.type !== "text"))) return undefined;
-            return ctx.message.map(e => e.data.text).join();
+        getPureMessage(onlyText = true) {
+            if (onlyText && ctx.message.some(e => (e.type !== "text"))) return undefined;
+            return ctx.message.map(e => {
+                if (e.type === "text") {
+                    return String(e.data.text);
+                } else if (e.type === "file") {
+                    return "[FILE]";
+                } else if (e.type === "at") {
+                    return `[AT:${e.data.qq}]`;
+                } else if (e.type === "face") {
+                    return `[EMOJI]`;
+                } else return "";
+            }).join();
         }
     }
 }
