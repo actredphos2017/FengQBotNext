@@ -205,8 +205,7 @@ export default {
         async function aiResponse(ch) {
             const content = await aliyunChat({
                 message: (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我"),
-                assistant: `你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"`,
-                model: "deepseek-r1"
+                assistant: `你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"`
             });
 
             for (let part of content.split(/(\[AT:\d+])/)) {
