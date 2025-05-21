@@ -116,7 +116,7 @@ const plugin = {
         }
       }
       if (!text) return true;
-      if (!text.startsWith("//PLUGINX\n")) return true;
+      if (!text.startsWith("//PLUGINX")) return true;
 
       api.log(`已收到来自用户 ${ch.userId} 的插件安装请求，正在验证...`);
 
