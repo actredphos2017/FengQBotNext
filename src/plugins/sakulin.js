@@ -191,7 +191,6 @@ export default {
             }
 
             res = res.map(e => `[${timestampToDate(e.timestamp)}] ${e.message}`);
-            res = res.map(e => `[${e.timestamp}] ${e.message}`);
             while (res.length > countLimit) {
                 res.shift();
             }
