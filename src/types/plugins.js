@@ -50,19 +50,36 @@
  */
 
 /**
+ * @typedef {(name: string, defaultValue: T) => Promise<T>} StoreGetFn
+ */
+
+/**
+ * @typedef {(name: string, value: T) => Promise<void>} StoreSetFn
+ */
+
+/**
+ * @typedef {Object} PluginAPIStore
+ * @property {StoreGetFn} get
+ * @property {StoreSetFn} set
+ */
+
+/**
  * @typedef {Object} PluginAPI
  * @property {function(string, EventListener): void} listen - 注册事件监听器
  * @property {function(string, any): Promise<void>} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (T | Promise<T>)): Promise<T>} withPlugin - 导入并使用插件接口
+ *
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {(trigger: (ch: ContextHelper) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
+ *
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
  * @property {import("../core/logger.js").Logger} logger - 日志记录器
  * @property {function(...any): void} log - 日志记录器
- * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据
- * @property {function(string): Promise<void>} setStore - 设置插件持久化数据
+ * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据（已弃用，使用 store 代替）
+ * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
+ * @property {PluginAPIStore} store - 更好的持久化数据访问方法
  */
 
 /**

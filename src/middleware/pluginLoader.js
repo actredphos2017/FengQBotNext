@@ -280,6 +280,43 @@ async function loadPlugin(pluginDefine) {
         },
         setStore: async (data) => {
             await setPluginStore(pluginId, data);
+        },
+        store: {
+            async get(key, defaultValue) {
+                const target = await getPluginStore(pluginId);
+                if (!target) {
+                    return defaultValue;
+                } else {
+                    try {
+                        const res = JSON.parse(target)[String(key)];
+                        if (res) {
+                            return res;
+                        } else {
+                            return defaultValue;
+                        }
+                    } catch (e) {
+                        return defaultValue;
+                    }
+                }
+            },
+            async set(key, value) {
+                const target = await getPluginStore(pluginId);
+                if (!target) {
+                    await setPluginStore(pluginId, JSON.stringify({ [key]: value }));
+                } else {
+                    try {
+                        const res = JSON.parse(target);
+                        if (!res) {
+                            await setPluginStore(pluginId, JSON.stringify({[key]: value}));
+                        } else {
+                            res[key] = value;
+                            await setPluginStore(pluginId, JSON.stringify(res));
+                        }
+                    } catch (e) {
+                        await setPluginStore(pluginId, JSON.stringify({[key]: value}));
+                    }
+                }
+            }
         }
     });
 
