@@ -235,15 +235,18 @@ export default {
         api.super(async (ch) => {
             if (!ch.isGroup) return true;
             if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
-            if ((await aliyunChat({
+
+            const responseContent = (await aliyunChat({
                 message: await getMessages(ch.groupId, 10),
-                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，其中的 ${aiConfig.selfQQ} 是你。如果你觉得需要参与群交流，请返回 true ，否则返回 false。注意，你需要控制你的发言频率`,
-            })).trim().toLowerCase() === "true") {
+                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，其中的 ${aiConfig.selfQQ} 是你，如果有人 AT 你，你大概率需要参与群交流。如果你觉得需要参与群交流，请返回 true ，否则返回 false。此外，你需要控制你的发言频率`,
+            })).trim().toLowerCase();
+
+            if (responseContent.indexOf("true") !== -1) {
                 api.log("[AI] 我认为自己需要发言！");
                 await aiResponse(ch);
                 return false;
             }
-            api.log("[AI] 我选择保持沉默！");
+            api.log(`[AI] 我的想法是 ${responseContent} ，因此我选择保持沉默！`);
             return true;
         }, { time: "onActivateFailed" });
 
