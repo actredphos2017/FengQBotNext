@@ -307,5 +307,29 @@ export default {
                 await ch.text(`群 ${groupId} 的 AI 功能已禁用！`).goAutoReply();
             }
         });
+
+        api.cmd(["删除历史记录"], async (ch, groupId = undefined) => {
+            const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
+            if (!hasPermission) {
+                await ch.text("你没有权限执行此命令！").goAutoReply();
+                return;
+            }
+            if (groupId === undefined) {
+                if (ch.isGroup) {
+                    groupId = ch.groupId;
+                } else {
+                    await ch.text("请指定一个群聊！").goAutoReply();
+                    return;
+                }
+            }
+            const store = await getStore("message", {});
+            if (!store[groupId]) {
+                await ch.text("该群聊没有历史记录！").goAutoReply();
+            } else {
+                store[groupId] = [];
+                await setStore("message", store);
+                await ch.text(`群 ${groupId} 的历史记录已删除！`).goAutoReply();
+            }
+        });
     }
 }
