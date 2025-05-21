@@ -236,9 +236,10 @@ export default {
             if (!ch.isGroup) return true;
             if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
 
-            const message = (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我");
-
+            const message = await getMessages(ch.groupId, 10);
             api.log(`[AI] 消息：`, {message});
+            message.replaceAll(aiConfig.selfQQ, "我")
+            api.log(`[AI] 解析后消息：`, {message});
 
             const responseContent = (await aliyunChat({
                 message,
