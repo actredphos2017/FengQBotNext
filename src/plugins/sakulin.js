@@ -141,28 +141,54 @@ export default {
             }
         }
 
-        api.cmd(["image", "tu", "图"], async (ch, type) => {
-            const source = type ? (imgSourceMap[type] ?? imgSourceMap[defaultSource]) : imgSourceMap[defaultSource];
-            try {
-                const response = await fetch(source);
-                if (!response.ok) {
-                    ch.text(`获取时发生错误：${response.status} ${response.statusText}`);
-                } else {
-                    ch.image(await response.blob());
-                }
-            } catch (e) {
-                ch.text(`获取时发生错误：${JSON.stringify(e)}`);
-            } finally {
-                await ch.goAutoReply();
-            }
-        }, {description: "看看图，可添加不同图源作为参数，例如发送 “#saku 图 原神” ，可选的图源有：" + Object.keys(imgSourceMap).map(e => ((e == defaultSource) ? (e + "（默认）") : e)).join("、")});
+        async function aiResponse(ch) {
+            const content = await aliyunChat({
+                message: (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我"),
+                assistant: `你现在是群里的活跃成员，要参与群聊互动。回复要求如下：
+1. 不用 Markdown 格式；
+2. 字数控制在 100 字以内，尽量保持在 20 字左右；
+3. 采用可爱的风格，模仿正常群友的打字习惯和语气，例如适当省略标点符号等；
+4. 若需引用(艾特)某个人，使用 \"[AT:这个人的ID]\" 格式，例如：\"嘿！[AT:123456789] 一起玩呀~\"；
+5. 结合当前群聊的上下文，给出贴合情境的回复。`
+            });
 
-        api.cmd(["ai"], async (ch, ...msg) => {
-            await ch.text(await aliyunChat({
-                message: msg.join(" "),
-                assistant: "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内"
-            })).goAutoReply();
-        });
+            for (let part of content.split(/(\[AT:\d+])/)) {
+                if (part.startsWith('[AT:') && part.endsWith(']')) {
+                    const id = part.slice(4, -1);
+                    try {
+                        ch.at(Number(id));
+                    } catch (_) {
+                    }
+                } else if (part) {
+                    if (/^\s*$/.test(part)) continue;
+                    ch.text(part);
+                }
+            }
+            await ch.go();
+
+            await pushMessage(aiConfig.selfQQ, ch.groupId, content);
+        }
+
+        async function aiIntelligentResponse(ch) {
+            if (!ch.isGroup) return true;
+            if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
+
+            const message = await getMessages(ch.groupId, 10);
+            message.replaceAll(aiConfig.selfQQ, "我")
+
+            const responseContent = (await aliyunChat({
+                message,
+                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，如果有人 AT 你，你大概率需要参与群交流。如果你觉得需要参与群交流，请返回 true ，否则返回 false。此外，你需要控制你的发言频率`,
+            })).trim().toLowerCase();
+
+            if (responseContent.indexOf("true") !== -1) {
+                api.log("[AI智能回复] 我认为自己需要发言！");
+                await aiResponse(ch);
+                return false;
+            }
+            api.log(`[AI智能回复] 我的想法是 ${responseContent} ，因此我选择保持沉默！`);
+            return true;
+        }
 
         async function pushMessage(who, groupId, message) {
             if (/^\s*$/.test(message)) return;
@@ -197,61 +223,40 @@ export default {
             return res.join("\n");
         }
 
+        api.cmd(["image", "tu", "图"], async (ch, type) => {
+            const source = type ? (imgSourceMap[type] ?? imgSourceMap[defaultSource]) : imgSourceMap[defaultSource];
+            try {
+                const response = await fetch(source);
+                if (!response.ok) {
+                    ch.text(`获取时发生错误：${response.status} ${response.statusText}`);
+                } else {
+                    ch.image(await response.blob());
+                }
+            } catch (e) {
+                ch.text(`获取时发生错误：${JSON.stringify(e)}`);
+            } finally {
+                await ch.goAutoReply();
+            }
+        }, {description: "看看图，可添加不同图源作为参数，例如发送 “#saku 图 原神” ，可选的图源有：" + Object.keys(imgSourceMap).map(e => ((e == defaultSource) ? (e + "（默认）") : e)).join("、")});
+
+        api.cmd(["ai"], async (ch, ...msg) => {
+            await ch.text(await aliyunChat({
+                message: msg.join(" "),
+                assistant: "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内"
+            })).goAutoReply();
+        });
+
         api.super(async (ch) => {
             if (ch.isGroup) await pushMessage(ch.userId, ch.groupId, ch.getPureMessage(false));
             return true;
         }, { time: "beforeActivate" });
-
-        async function aiResponse(ch) {
-            const content = await aliyunChat({
-                message: (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我"),
-                assistant: `你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"`
-            });
-
-            for (let part of content.split(/(\[AT:\d+])/)) {
-                if (part.startsWith('[AT:') && part.endsWith(']')) {
-                    const id = part.slice(4, -1);
-                    try {
-                        ch.at(Number(id));
-                    } catch (_) {
-                    }
-                } else if (part) {
-                    if (/^\s*$/.test(part)) continue;
-                    ch.text(part);
-                }
-            }
-            await ch.go();
-
-            await pushMessage(aiConfig.selfQQ, ch.groupId, content);
-        }
 
         api.cmd(["强制说话"], async (ch) => {
             if (!ch.isGroup) await ch.text("Emmm...不好意思哈，这个功能只能在群里可以使用哦~ >_<").go();
             else await aiResponse(ch);
         });
 
-        api.super(async (ch) => {
-            if (!ch.isGroup) return true;
-            if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
-
-            const message = await getMessages(ch.groupId, 10);
-            api.log(`[AI] 消息：`, {message});
-            message.replaceAll(aiConfig.selfQQ, "我")
-            api.log(`[AI] 解析后消息：`, {message});
-
-            const responseContent = (await aliyunChat({
-                message,
-                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，如果有人 AT 你，你大概率需要参与群交流。如果你觉得需要参与群交流，请返回 true ，否则返回 false。此外，你需要控制你的发言频率`,
-            })).trim().toLowerCase();
-
-            if (responseContent.indexOf("true") !== -1) {
-                api.log("[AI] 我认为自己需要发言！");
-                await aiResponse(ch);
-                return false;
-            }
-            api.log(`[AI] 我的想法是 ${responseContent} ，因此我选择保持沉默！`);
-            return true;
-        }, { time: "onActivateFailed" });
+        api.super(aiIntelligentResponse, { time: "onActivateFailed" });
 
         api.cmd(["ai激活"], async (ch, group = undefined) => {
             const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
