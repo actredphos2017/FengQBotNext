@@ -1,5 +1,5 @@
 import axios from "axios";
-import {ApiKey as config} from "../lib/config.js";
+import {ApiKey as apiConfig} from "../lib/config.js";
 
 //PLUGINX
 const imgSourceMap = {
@@ -16,23 +16,21 @@ const imgSourceMap = {
 const defaultSource = "二次元";
 
 const aiConfig = {
-    timeRange: 1000 * 60 * 30, // 30 分钟内
-    maxCount: 30, // 最多 30 条消息
+    timeRange: -1,
+    maxCount: 30,
+    selfQQ: "161009029"
 }
 
-/**
- * @type {{
- *     message: {
- *         [groupId: string]: {
- *             message: string,
- *             timestamp: number
- *         }[]
- *     }
- * }}
- */
-const defaultStore = {
-    message: {}
-};
+function timestampToDate(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
 
 /**
  * @type {import("../types/plugins").PluginInfo}
@@ -41,24 +39,105 @@ export default {
     config: {
         id: "sakulin",
         name: "红磷的工具箱",
-        description: "看看图，可添加不同图源作为参数，例如发送 “#saku 图 原神” ，可选的图源有：" + Object.keys(imgSourceMap).map(e => ((e == defaultSource) ? (e + "（默认）") : e)).join("、"),
+        description: "",
         author: "Sakulin",
         version: "1.0.2"
     },
     setup(api) {
 
-        async function getStore() {
+        if (!api.assert("util")) {
+            api.reject("这个插件依赖 util 插件运行！");
+            return;
+        }
+
+        /**
+         * @param {any} config
+         * @returns {Promise<string>}
+         */
+        async function aliyunChat(config) {
+            config = {
+                model: config.model ?? "qwen-plus",
+                message: config.message,
+                assistant: config.assistant,
+                enable_thinking: config.enable_thinking ?? false,
+            }
+
+            const messages = [{
+                role: "user",
+                content: config.message
+            }];
+
+            if (config.assistant) {
+                messages.push({
+                    role: "assistant",
+                    content: config.assistant
+                })
+            }
+
+            const axiosRequest = {
+                url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + apiConfig.aliyun_ai,
+                    "Content-Type": "application/json"
+                },
+                data: {
+                    messages,
+                    model: config.model,
+                    enable_thinking: config.enable_thinking
+                }
+            };
+
+            api.log(axiosRequest);
+
+            const response = await axios(axiosRequest);
+
+            const responseContent = response.data.choices[0].message.content;
+
+            return responseContent;
+        }
+
+        /**
+         * @template T
+         * @param {*} key
+         * @param {T} defaultValue
+         * @returns {Promise<T>}
+         */
+        async function getStore(key, defaultValue = undefined) {
             const store = await api.getStore();
             if (!store) {
-                await api.setStore(JSON.stringify(defaultStore));
-                return defaultStore;
+                return defaultValue;
             } else {
-                return JSON.parse(store);
+                try {
+                    const res = JSON.parse(store)[String(key)];
+                    if (res) {
+                        return res;
+                    } else {
+                        return defaultValue;
+                    }
+                } catch (e) {
+                    return defaultValue;
+                }
             }
         }
 
-        async function setStore(data) {
-            await api.setStore(JSON.stringify(data));
+        async function setStore(key, value) {
+            const store = await api.getStore();
+            if (!store) {
+                await api.setStore(JSON.stringify({[key]: value}));
+            } else {
+                try {
+                    const res = JSON.parse(store);
+                    if (!res) {
+                        await api.setStore(JSON.stringify({[key]: value}));
+                    } else {
+                        res[key] = value;
+                        await api.setStore(JSON.stringify(res));
+                    }
+                } catch (e) {
+                    await api.setStore(JSON.stringify({[key]: value}));
+                }
+            }
         }
 
         api.cmd(["image", "tu", "图"], async (ch, type) => {
@@ -75,90 +154,60 @@ export default {
             } finally {
                 await ch.goAutoReply();
             }
-        });
+        }, {description: "看看图，可添加不同图源作为参数，例如发送 “#saku 图 原神” ，可选的图源有：" + Object.keys(imgSourceMap).map(e => ((e == defaultSource) ? (e + "（默认）") : e)).join("、")});
 
         api.cmd(["ai"], async (ch, ...msg) => {
-            const response = await axios({
-                url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + config.aliyun_ai,
-                    "Content-Type": "application/json"
-                },
-                data: {
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": msg.join(" ")
-                        },
-                        {
-                            "role": "assistant",
-                            "content": "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内"
-                        }
-                    ],
-                    model: "qwen-plus",
-                    enable_thinking: false
-                }
-            });
-            // 从 response 中提取 content
-            api.log(response.data);
-            const content = response.data.choices[0].message.content;
-            // 调用 ch.text 方法将 content 发送给用户
-            ch.text(content).goAutoReply();
+            await ch.text(await aliyunChat({
+                message: msg.join(" "),
+                assistant: "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内"
+            })).goAutoReply();
         });
 
         async function pushMessage(who, groupId, message) {
             if (/^\s*$/.test(message)) return;
-            const store = await getStore();
-            if (!store.message[String(groupId)]) {
-                store.message[String(groupId)] = [];
+            groupId = String(groupId);
+            const messageStore = await getStore("message", {});
+            if (!messageStore[groupId]) {
+                messageStore[groupId] = [];
             }
-            store.message[groupId].push({
+            messageStore[groupId].push({
                 message: `[${who}] ${message}`,
                 timestamp: Date.now()
             });
-            while (store.message[groupId].length > aiConfig.maxCount) {
-                store.message[groupId].shift();
+            while (messageStore[groupId].length > aiConfig.maxCount) {
+                messageStore[groupId].shift();
             }
-            await setStore(store);
+            await setStore("message", messageStore);
+        }
+
+        /**
+         * @returns {Promise<string>}
+         */
+        async function getMessages(groupId, countLimit = aiConfig.maxCount, timeRange = aiConfig.timeRange) {
+            let res = ((await getStore("message"))[String(groupId)] ?? []);
+            if (timeRange > 0) {
+                 res = res.filter(e => e.timestamp > Date.now() - timeRange);
+            }
+
+            res = res.map(e => `[${timestampToDate(e.timestamp)}] ${e.message}`);
+            res = res.map(e => `[${e.timestamp}] ${e.message}`);
+            while (res.length > countLimit) {
+                res.shift();
+            }
+            return res.join("\n");
         }
 
         api.super(async (ch) => {
-            if (ch.isGroup) await pushMessage(String(ch.userId), String(ch.groupId), ch.getPureMessage(false));
+            if (ch.isGroup) await pushMessage(ch.userId, ch.groupId, ch.getPureMessage(false));
             return true;
         }, { time: "beforeActivate" });
 
-        api.cmd(["你觉得呢", "你觉得呢？", "你怎么看", "你怎么看？", "说说话？", "说说话", "说话", "说话！"], async (ch) => {
-            if (!ch.isGroup) {
-                await ch.text("Emmm...不好意思哈，这个功能只能在群里可以使用哦~ >_<").go();
-                return;
-            }
-
-            const ctx = ((await getStore()).message[String(ch.groupId)] ?? []).filter(e => e.timestamp > Date.now() - aiConfig.timeRange).map(e => e.message).join("\n");
-
-            const response = await axios({
-                url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + config.aliyun_ai,
-                    "Content-Type": "application/json"
-                },
-                data: {
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": ctx
-                        },
-                        {
-                            "role": "assistant",
-                            "content": "你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"，其中， 161009029 是你"
-                        }
-                    ],
-                    model: "qwen-plus",
-                    enable_thinking: false
-                }
+        async function aiResponse(ch) {
+            const content = await aliyunChat({
+                message: await getMessages(ch.groupId),
+                assistant: `你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"，其中， ${aiConfig.selfQQ}  是你`,
+                model: "qwen-plus"
             });
-            const content = response.data.choices[0].message.content;
 
             for (let part of content.split(/(\[AT:\d+])/)) {
                 if (part.startsWith('[AT:') && part.endsWith(']')) {
@@ -174,7 +223,77 @@ export default {
             }
             await ch.go();
 
-            await pushMessage("你", String(ch.groupId), content);
+            await pushMessage(aiConfig.selfQQ, ch.groupId, content);
+        }
+
+        api.cmd(["你觉得呢", "你觉得呢？", "你怎么看", "你怎么看？", "说说话？", "说说话", "说话", "说话！"], async (ch) => {
+            if (!ch.isGroup) await ch.text("Emmm...不好意思哈，这个功能只能在群里可以使用哦~ >_<").go();
+            else await aiResponse(ch);
+        });
+
+        api.super(async (ch) => {
+            if (!ch.isGroup) return true;
+            if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
+            if ((await aliyunChat({
+                message: await getMessages(ch.groupId, 10),
+                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，其中的 ${aiConfig.selfQQ} 是你。如果你觉得需要参与群交流，请返回 true ，否则返回 false。注意，你需要控制你的发言频率，如果你意识到发言频率过快，请尽可能返回 false`,
+            })).trim().toLowerCase() === "true") {
+                api.log("[AI] 我认为自己需要发言！");
+                await aiResponse(ch);
+                return false;
+            }
+            api.log("[AI] 我选择保持沉默！");
+            return true;
+        }, { time: "onActivateFailed" });
+
+        api.cmd(["ai激活"], async (ch, group = undefined) => {
+            const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
+            if (!hasPermission) {
+                await ch.text("你没有权限执行此命令！").goAutoReply();
+                return;
+            }
+            if (group === undefined) {
+                if (ch.isGroup) {
+                    group = ch.groupId;
+                } else {
+                    await ch.text("请指定一个群聊！").goAutoReply();
+                    return;
+                }
+            }
+            const groupId = String(group);
+            const store = await getStore("acitvatedGroups", []);
+            if (store.includes(groupId)) {
+                await ch.text("该群聊已经激活了 AI 功能！").goAutoReply();
+            } else {
+                store.push(groupId);
+                await setStore("acitvatedGroups", store);
+                await ch.text(`群 ${groupId} 的 AI 功能已激活！`).goAutoReply();
+            }
+        });
+
+        api.cmd(["ai禁用"], async (ch, group = undefined) => {
+            const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
+            if (!hasPermission) {
+                await ch.text("你没有权限执行此命令！").goAutoReply();
+                return;
+            }
+            if (group === undefined) {
+                if (ch.isGroup) {
+                    group = ch.groupId;
+                } else {
+                    await ch.text("请指定一个群聊！").goAutoReply();
+                    return;
+                }
+            }
+            const groupId = String(group);
+            const store = await getStore("acitvatedGroups", []);
+            if (!store.includes(groupId)) {
+                await ch.text("该群聊没有激活 AI 功能！").goAutoReply();
+            } else {
+                store.splice(store.indexOf(groupId), 1);
+                await setStore("acitvatedGroups", store);
+                await ch.text(`群 ${groupId} 的 AI 功能已禁用！`).goAutoReply();
+            }
         });
     }
 }

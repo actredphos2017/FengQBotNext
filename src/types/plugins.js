@@ -46,7 +46,7 @@
 /**
  * @typedef {Object} SuperCommandConfig
  * @property {string} description - 超级命令描述
- * @property {"beforeActivate" | "afterActivate" | "onFinally"} time - 执行时机
+ * @property {"beforeActivate" | "afterActivate" | "onActivateFailed" | "onFinally"} time - 执行时机
  */
 
 /**
@@ -54,7 +54,7 @@
  * @property {function(string, EventListener): void} listen - 注册事件监听器
  * @property {function(string, any): Promise<void>} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
- * @property {function(string, (api: PluginInterface) => (any | Promise<any>)): Promise<any>} withPlugin - 导入并使用插件接口
+ * @property {function(string, (api: PluginInterface) => (T | Promise<T>)): Promise<T>} withPlugin - 导入并使用插件接口
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {(trigger: (ch: ContextHelper) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
  * @property {function(string): boolean} assert - 检查插件是否存在

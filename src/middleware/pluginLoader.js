@@ -95,12 +95,14 @@ const quickCommands = {};
  * @type {{
  *     beforeActivate: { [pluginId: string]: SuperCommandFn}
  *     afterActivate: { [pluginId: string]: SuperCommandFn}
+ *     onActivateFailed: { [pluginId: string]: SuperCommandFn}
  *     onFinally: { [pluginId: string]: SuperCommandFn}
  * }}
  */
 const superCommands = {
     beforeActivate: [],
     afterActivate: [],
+    onActivateFailed: [],
     onFinally: []
 }
 
@@ -402,7 +404,11 @@ function contextHelper(ctx, qqBot) {
                     return `[AT:${e.data.qq}]`;
                 } else if (e.type === "face") {
                     return `[EMOJI]`;
-                } else return "";
+                } else if (e.type === "image") {
+                    return "[IMAGE]";
+                } else {
+                    return "";
+                }
             }).join();
         }
     }
@@ -471,6 +477,14 @@ export function pluginLoader(config = {}) {
 
                     const parts = config.activate(context);
                     if (!parts) {
+                        // 超级命令
+                        for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
+                            const res = await fn(contextHelper(context, qqBot));
+                            if (res === false) {
+                                logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
+                                return;
+                            }
+                        }
                         return;
                     }
 
@@ -516,6 +530,14 @@ export function pluginLoader(config = {}) {
 
 
                     if (!command) {
+                        // 超级命令
+                        for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
+                            const res = await fn(contextHelper(context, qqBot));
+                            if (res === false) {
+                                logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
+                                return;
+                            }
+                        }
                         return;
                     }
                     logger.log(`命令 ${cmdName} 已找到`);
