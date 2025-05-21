@@ -98,11 +98,19 @@ const plugin = {
         if (ch.isGroup) {
           const file = ch.context.message.filter(e => e.type === "file");
           if (file.length > 0) {
+            /**
+             * @type {string}
+             */
+            const fileName = file[0].data.file;
+            const fileDownloadUrl = file[0].data.url;
             api.log(`已收到来自用户 ${ch.userId} 的插件定义文件文件详情：`);
-            api.log(`  文件名：${file[0].data.file}`);
-            api.log(`  文件下载地址：${file[0].data.url}`);
-            if (file[0].data && file[0].data.file.endsWith(".js") && file[0].data.url) {
-              text = (await axios.get(file[0].data.url)).data;
+            api.log(`  文件名：${fileName}`);
+            api.log(`  文件下载地址：${fileDownloadUrl}`);
+            if (fileName.endsWith(".js")) {
+              api.log(`该文件已锁定，开始下载...`);
+              const response = (await axios.get(fileDownloadUrl));
+              api.log("文件下载响应：", response);
+              text = response.data;
             }
           }
         }
