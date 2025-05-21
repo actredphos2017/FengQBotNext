@@ -1,7 +1,8 @@
+//PLUGINX
 import axios from "axios";
 import {ApiKey as apiConfig} from "../lib/config.js";
 
-//PLUGINX
+
 const imgSourceMap = {
     "二次元": "https://app.zichen.zone/api/acg/api.php",
     "原神": "https://t.alcy.cc/ysz",
@@ -236,7 +237,7 @@ export default {
             if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
             if ((await aliyunChat({
                 message: await getMessages(ch.groupId, 10),
-                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，其中的 ${aiConfig.selfQQ} 是你。如果你觉得需要参与群交流，请返回 true ，否则返回 false。注意，你需要控制你的发言频率，如果你意识到发言频率过快，请尽可能返回 false`,
+                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，其中的 ${aiConfig.selfQQ} 是你。如果你觉得需要参与群交流，请返回 true ，否则返回 false。注意，你需要控制你的发言频率`,
             })).trim().toLowerCase() === "true") {
                 api.log("[AI] 我认为自己需要发言！");
                 await aiResponse(ch);
