@@ -236,8 +236,12 @@ export default {
             if (!ch.isGroup) return true;
             if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
 
+            const message = (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我");
+
+            api.log(`[AI] 消息：`, {message});
+
             const responseContent = (await aliyunChat({
-                message: (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我"),
+                message,
                 assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，如果有人 AT 你，你大概率需要参与群交流。如果你觉得需要参与群交流，请返回 true ，否则返回 false。此外，你需要控制你的发言频率`,
             })).trim().toLowerCase();
 
