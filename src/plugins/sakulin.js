@@ -227,7 +227,7 @@ export default {
             await pushMessage(aiConfig.selfQQ, ch.groupId, content);
         }
 
-        api.cmd(["你觉得呢", "你觉得呢？", "你怎么看", "你怎么看？", "说说话？", "说说话", "说话", "说话！"], async (ch) => {
+        api.cmd(["强制说话"], async (ch) => {
             if (!ch.isGroup) await ch.text("Emmm...不好意思哈，这个功能只能在群里可以使用哦~ >_<").go();
             else await aiResponse(ch);
         });
