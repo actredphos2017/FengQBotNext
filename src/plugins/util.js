@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from "node:url";
 import { tmpdir } from 'os';
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -89,12 +90,20 @@ const plugin = {
     }, { quickCommandRegisterIgnore: true });
 
     api.super(async (ch) => {
-      const text = ch.getPureMessage();
-      if (!text) return true;
-      if (!text.startsWith("//PLUGINX\n")) return true;
       if (!(await hasPermission(ch))) {
         return true;
       }
+      let text = ch.getPureMessage();
+      if (!text) {
+        if (ch.isGroup) {
+          const file = ch.context.message.filter(e => e.type === "file");
+          if (file.length > 0 && file[0].data && file[0].data.file.endsWith(".js") && file[0].data.url) {
+            text = (await axios.get(file[0].data.url)).data;
+          }
+        }
+      }
+      if (!text) return true;
+      if (!text.startsWith("//PLUGINX\n")) return true;
 
       api.log(`已收到来自用户 ${ch.userId} 的插件安装请求，正在验证...`);
 
