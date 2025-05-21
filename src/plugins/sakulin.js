@@ -205,9 +205,9 @@ export default {
 
         async function aiResponse(ch) {
             const content = await aliyunChat({
-                message: await getMessages(ch.groupId),
-                assistant: `你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"，其中， ${aiConfig.selfQQ}  是你`,
-                model: "qwen-plus"
+                message: (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我"),
+                assistant: `你是一个群友，在群里聊天，回答不用 markdown，100字以内，用可爱的风格，另外说话简短一点，模仿正常的群友打字回复，回答尽量在20字以内；如果需要引用某个人，请使用\"[AT:这个人的ID]\"代替。例如：\"嘿！[AT:123456789]你好！\"`,
+                model: "deepseek-r1"
             });
 
             for (let part of content.split(/(\[AT:\d+])/)) {
@@ -237,8 +237,8 @@ export default {
             if (!(await getStore("acitvatedGroups", [])).includes(String(ch.groupId))) return true;
 
             const responseContent = (await aliyunChat({
-                message: await getMessages(ch.groupId, 10),
-                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，其中的 ${aiConfig.selfQQ} 是你，如果有人 AT 你，你大概率需要参与群交流。如果你觉得需要参与群交流，请返回 true ，否则返回 false。此外，你需要控制你的发言频率`,
+                message: (await getMessages(ch.groupId, 10)).replaceAll(aiConfig.selfQQ, "我"),
+                assistant: `你是聊天群友，你只能返回 true 或 false ，不需要返回其他内容。消息是一段聊天记录，在这里你要判断你是否需要参与群交流，如果有人 AT 你，你大概率需要参与群交流。如果你觉得需要参与群交流，请返回 true ，否则返回 false。此外，你需要控制你的发言频率`,
             })).trim().toLowerCase();
 
             if (responseContent.indexOf("true") !== -1) {
