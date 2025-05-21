@@ -111,6 +111,8 @@ const plugin = {
 
       let success = false;
 
+      let tempFilePath;
+
       try {
         // 尝试将文本当作 JS 模块导入
         const tempDir = path.join(__dirname, '..', 'temp');
@@ -121,7 +123,7 @@ const plugin = {
         }
 
         // 生成临时文件路径
-        const tempFilePath = path.join(tempDir, `${uuidv4()}.js`);
+        tempFilePath = path.join(tempDir, `${uuidv4()}.js`);
         api.log(`插件临时文件已创建在 ${tempFilePath}`);
         fs.writeFileSync(tempFilePath, text);
         const importedModule = await import(`file://${tempFilePath}`);
