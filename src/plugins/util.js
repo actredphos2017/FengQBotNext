@@ -109,9 +109,19 @@ const plugin = {
 
       let pluginId = undefined;
 
+      let success = false;
+
       try {
         // 尝试将文本当作 JS 模块导入
-        const tempFilePath = path.join(tmpdir(), `${uuidv4()}.js`);
+        const tempDir = path.join(__dirname, '..', 'temp');
+
+        // 检查临时目录是否存在，不存在则创建
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        // 生成临时文件路径
+        const tempFilePath = path.join(tempDir, `${uuidv4()}.js`);
         api.log(`插件临时文件已创建在 ${tempFilePath}`);
         fs.writeFileSync(tempFilePath, text);
         const importedModule = await import(`file://${tempFilePath}`);
@@ -127,21 +137,30 @@ const plugin = {
             api.log('名称:', config.name);
             api.log('作者:', config.author);
             pluginId = config.id;
+            success = true;
           } else {
             api.log('验证失败，缺少必要的配置信息或 setup 函数。');
             await ch.text(`插件验证失败，缺少必要的配置信息或 setup 函数。`).go();
-            return false;
           }
         } else {
           api.log('验证失败，未找到默认导出对象。');
           await ch.text(`插件验证失败，未找到默认导出对象。`).go();
-          return false;
         }
       } catch (error) {
         api.log('验证失败，严重模块导入功能时出错:', error);
         await ch.text(`插件验证失败，严重模块导入功能时出错: ${error}`).go();
-        return false;
+      } finally {
+        if (tempFilePath) {
+          try {
+            fs.unlinkSync(tempFilePath);
+            api.log(`临时文件已删除: ${tempFilePath}`);
+          } catch (deleteError) {
+            api.log(`删除临时文件时出错: ${deleteError}`);
+          }
+        }
       }
+
+      if (!success) return false;
 
       try {
         const filePath = path.join(__dirname, `${pluginId}.js`);
