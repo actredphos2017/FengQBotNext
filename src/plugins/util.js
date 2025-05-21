@@ -97,8 +97,13 @@ const plugin = {
       if (!text) {
         if (ch.isGroup) {
           const file = ch.context.message.filter(e => e.type === "file");
-          if (file.length > 0 && file[0].data && file[0].data.file.endsWith(".js") && file[0].data.url) {
-            text = (await axios.get(file[0].data.url)).data;
+          if (file.length > 0) {
+            api.log(`已收到来自用户 ${ch.userId} 的插件定义文件文件详情：`);
+            api.log(`  文件名：${file[0].data.file}`);
+            api.log(`  文件下载地址：${file[0].data.url}`);
+            if (file[0].data && file[0].data.file.endsWith(".js") && file[0].data.url) {
+              text = (await axios.get(file[0].data.url)).data;
+            }
           }
         }
       }
