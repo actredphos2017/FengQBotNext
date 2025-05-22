@@ -430,6 +430,7 @@ function contextHelper(ctx, qqBot) {
         },
         isGroup: ctx.message_type === "group",
         context: ctx,
+        napcat: qqBot,
         getPureMessage(onlyText = true) {
             if (onlyText && ctx.message.some(e => (e.type !== "text"))) return undefined;
             return ctx.message.map(e => {
