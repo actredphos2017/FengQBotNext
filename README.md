@@ -6,14 +6,14 @@
 //PLUGINX <- 这是插件识别前缀，用于识别和自动安装（必要）
 
 export default {
-	config: {
-		id: "temp", // 你的插件 ID ，全局唯一标识（必要）
-		name: "测试名称", // 你的插件名称（必要）
-		author: "Sakulin" // 作者（必要）
-	},
-	setup() {
-		// 插件初始化函数（必要）
-	}
+    config: {
+        id: "temp", // 你的插件 ID ，全局唯一标识（必要）
+        name: "测试名称", // 你的插件名称（必要）
+        author: "Sakulin" // 作者（必要）
+    },
+    setup() {
+        // 插件初始化函数（必要）
+    }
 }
 ```
 
@@ -31,10 +31,10 @@ export default {
 //PLUGINX
 
 export default {
-	config: { /* ... */ },
-	setup(api) { // 通过 setup 函数的第一个参数来获取 PluginAPI
-		api.log("Hello World!");
-	}
+    config: { /* ... */ },
+    setup(api) { // 通过 setup 函数的第一个参数来获取 PluginAPI
+        api.log("Hello World!");
+    }
 }
 ```
 
@@ -46,16 +46,16 @@ export default {
 //PLUGINX
 
 export default {
-	config: { /* ... */ },
-	setup(api) {
+    config: { /* ... */ },
+    setup(api) {
 
-		async function testCmd(ch, ...args) {
-			// 这里是你的命令代码
-		}
+        async function testCmd(ch, ...args) {
+            // 这里是你的命令代码
+        }
 
-		// 定义命令
-		api.cmd(["测试命令"], testCmd);
-	}
+        // 定义命令
+        api.cmd(["测试命令"], testCmd);
+    }
 }
 ```
 
@@ -69,16 +69,16 @@ export default {
 // 正常调用
 async function testCmd(ch) {
 
-	ch.text("你好！"); // 输入文本 “你好”
+    ch.text("你好！"); // 输入文本 “你好”
 
-	ch.face("ww"); // 输入表情 “汪汪”（狗头）
+    ch.face("ww"); // 输入表情 “汪汪”（狗头）
 
-	await ch.go(); // 发送消息
+    await ch.go(); // 发送消息
 }
 
 // 链式调用
 async function testCmd(ch) {
-	await ch.text("你好！").face("ww").go();
+    await ch.text("你好！").face("ww").go();
 }
 ```
 
@@ -111,11 +111,11 @@ await ch.text(`你好，${ch.userId}`).go();
 ```js
 if (ch.isGroup) {
 
-	/* 群聊逻辑 */
+    /* 群聊逻辑 */
 
 } else {
 
-	/* 私聊逻辑 */
+    /* 私聊逻辑 */
 
 }
 ```
@@ -125,9 +125,9 @@ if (ch.isGroup) {
 ```js
 if (ch.isGroup) {
 
-	const groupId = ch.groupId;
+    const groupId = ch.groupId;
 
-	/* 其他逻辑 */
+    /* 其他逻辑 */
 
 }
 ```
@@ -185,15 +185,15 @@ await store.set("data", { key: "value" }); // 设置数据。
 //PLUGINX
 
 export default {
-	config: { /* ... */ },
-	setup(api) {
+    config: { /* ... */ },
+    setup(api) {
 
-		function myMethod() {
-			// 实现一些独有功能
-		}
+        function myMethod() {
+            // 实现一些独有功能
+        }
 
-		api.expose({ myMethod }); // 暴露组件成员
-	}
+        api.expose({ myMethod }); // 暴露组件成员
+    }
 }
 ```
 
@@ -203,23 +203,23 @@ export default {
 //PLUGINX
 
 export default {
-	config: { /* ... */ },
-	setup(api) {
-		async function myCmd(ch) {
-			const hasPermission = await api.withPlugin("util", async (util) => {
-				return await util.hasPermission(ch.userId);
-			});
+    config: { /* ... */ },
+    setup(api) {
+        async function myCmd(ch) {
+            const hasPermission = await api.withPlugin("util", async (util) => {
+                return await util.hasPermission(ch.userId);
+            });
 
-			/* ... */
-		}
+            /* ... */
+        }
 
-		// [警告]请不要像下面这样做！
-		let util;
-		await api.withPlugin("util", async (u) => {
-			util = u;
-		});
-		// 为什么：如 util 插件更新，你手上的 util 对象可能指向已经被删除的对象。
-	}
+        // [警告]请不要像下面这样做！
+        let util;
+        await api.withPlugin("util", async (u) => {
+            util = u;
+        });
+        // 为什么：如 util 插件更新，你手上的 util 对象可能指向已经被删除的对象。
+    }
 }
 ```
 
@@ -229,15 +229,15 @@ export default {
 //PLUGINX
 
 export default {
-	config: { /* ... */ },
-	setup(api) {
-		if (!api.assert("util")) {
-			api.reject("本插件依赖于 Util 插件运行"); // 阻止自己的安装
-			return;
-		}
+    config: { /* ... */ },
+    setup(api) {
+        if (!api.assert("util")) {
+            api.reject("本插件依赖于 Util 插件运行"); // 阻止自己的安装
+            return;
+        }
 
-		/* ... */
-	}
+        /* ... */
+    }
 }
 ```
 
@@ -253,16 +253,16 @@ export default {
 //PLUGINX
 
 export default {
-	config: {
-		id: "a",
-		name: "插件 A",
-		author: "Sakulin",
-		level: "functional" // functional 对应值 150
-	},
-	setup(api) {
-		api.log("加载插件 A！");
-		api.log(api.assert("b"));
-	}
+    config: {
+        id: "a",
+        name: "插件 A",
+        author: "Sakulin",
+        level: "functional" // functional 对应值 150
+    },
+    setup(api) {
+        api.log("加载插件 A！");
+        api.log(api.assert("b"));
+    }
 }
 ```
 
@@ -270,16 +270,16 @@ export default {
 //PLUGINX
 
 export default {
-	config: {
-		id: "b",
-		name: "插件 B",
-		author: "Sakulin",
-		level: 120 // 显式定义插件等级
-	},
-	setup(api) {
-		api.log("加载插件 B！");
-		api.log(api.assert("a"));
-	}
+    config: {
+        id: "b",
+        name: "插件 B",
+        author: "Sakulin",
+        level: 120 // 显式定义插件等级
+    },
+    setup(api) {
+        api.log("加载插件 B！");
+        api.log(api.assert("a"));
+    }
 }
 ```
 
@@ -292,3 +292,45 @@ false
 true
 ```
 
+### 超级命令
+
+超级命令是一种特殊的命令，它可以在任何情况下被调用，而不管当前的上下文类型或是否被激活。
+
+你可以把它当成一个拦截器，可以在一个消息接收的任何时间点拦截，默默处理一点事情或者直接取消后面的逻辑。
+
+拦截时机如下：
+
+- `"beforeActivate"` ：消息接收后、命令识别前。
+- `"onActivateFailed"` ：命令识别失败后。
+- `"afterActivate"` ：命令识别成功后、命令代码执行前。
+- `"onFinally"` ：命令代码执行后。
+
+具体流程图如下：
+
+![doc_img/level.png](doc_img/timecycle.png)
+
+示范：默默保存群聊历史记录
+
+```js
+//PLUGINX
+
+export default {
+    config: { /* ... */ },
+    setup(api) {
+        const store = api.store;
+
+        async function saveHistory(ch) {
+            const groupId = ch.groupId;
+            const message = ch.getPureMessage(false);
+            const history = await store.get(`history:${groupId}`, []);
+            history.push(message);
+            await store.set(`history:${groupId}`, history);
+
+            return true; // 允许后面的逻辑执行
+        }
+
+        api.super(saveHistory, {
+            time: "beforeActivate" // 拦截时机
+        });
+    }
+}

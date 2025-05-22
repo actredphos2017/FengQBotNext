@@ -526,15 +526,6 @@ export function pluginLoader(config = {}) {
                         return;
                     }
 
-                    // 超级命令
-                    for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
-                        const res = await fn(contextHelper(context, qqBot));
-                        if (res === false) {
-                            logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令默认执行`);
-                            return;
-                        }
-                    }
-
                     logger.log("消息已命中，关键字：", parts.join(", "));
 
                     let command, cmdName;
@@ -577,8 +568,17 @@ export function pluginLoader(config = {}) {
                             }
                         }
                         return;
+                    } else {
+                        logger.log(`命令 ${cmdName} 已找到`);
+                        // 超级命令
+                        for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
+                            const res = await fn(contextHelper(context, qqBot));
+                            if (res === false) {
+                                logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令默认执行`);
+                                return;
+                            }
+                        }
                     }
-                    logger.log(`命令 ${cmdName} 已找到`);
 
                     try {
                         await command.fn(contextHelper(context, qqBot), ...args);
