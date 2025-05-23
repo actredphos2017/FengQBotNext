@@ -95,7 +95,7 @@ function createJob(pluginId, cron, fn) {
         try {
             await fn();
         } catch (e) {
-            logger.error(`插件 ${pluginId} 的定时任务 ${time} 执行失败: ${e.message}`);
+            logger.error(`插件 ${pluginId} 的定时任务 ${cron} 执行失败:`, e);
         }
     });
     if (!jobs[pluginId]) {
@@ -301,7 +301,7 @@ async function loadPlugin(pluginDefine) {
         expose: (api) => {
             pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
         },
-        createBot: botHelper(),
+        createBot: botHelper,
         withPlugin: (pluginId, func) => {
             const plugin = plugins[pluginId];
             let api;
