@@ -231,6 +231,7 @@ async function loadPlugins(hard = false) {
     for (const plugin of pluginList) {
         if (!plugin.loaded) {
             try {
+                clearJobs(plugin.instance.config.id);
                 await loadPlugin(plugin);
                 if (plugin.rejected) {
                     logger.log(`插件 ${plugin.instance.config.id} 拒绝加载`);
