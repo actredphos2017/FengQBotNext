@@ -564,6 +564,7 @@ function botHelper() {
                 isGroup: false
             };
             requestBuffer = [];
+            return this;
         },
         text(text) {
             requestBuffer.push({type: "text", data: {text}});
