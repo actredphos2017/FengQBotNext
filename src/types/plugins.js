@@ -99,7 +99,7 @@
  * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据（已弃用，使用 store 代替）
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
  * @property {PluginAPIStore} store - 更好的持久化数据访问方法
- * @property {PluginAPISchedule} schedule - 定时任务装饰器
+ * @property {PluginAPISchedule} schedule - 定时任务
  */
 
 /**
