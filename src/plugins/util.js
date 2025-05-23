@@ -24,28 +24,20 @@ const plugin = {
   },
   setup(api) {
 
-    async function getStore() {
-      const store = await api.getStore();
-      if (!store) {
-        return defaultStore;
-      }
-      return JSON.parse(store);
-    }
-
-    async function setStore(data) {
-      await api.setStore(JSON.stringify(data));
-    }
-
     /**
      * @param {ContextHelper | Context | string} ch
      * @returns {Promise<boolean>}
      */
     async function hasPermission(ch) {
       if (typeof ch === "string" || typeof ch === "number")
-        return (await getStore()).ops.includes(String(ch));
+        return (await api.store.get("ops", defaultStore.ops)).includes(String(ch));
       else if (ch && (typeof ch.user_id === "string" || typeof ch.user_id === "number"))
-        return (await getStore()).ops.includes(String(ch.user_id));
+        return (await api.store.get("ops", defaultStore.ops)).includes(String(ch.user_id));
       throw new Error("Invalid context");
+    }
+
+    async function getOpList() {
+      return await api.store.get("ops", defaultStore.ops);
     }
 
     api.cmd(["reload"], async (ch) => {
@@ -63,13 +55,13 @@ const plugin = {
         await ch.text("你没有权限执行此命令！").goAutoReply();
         return;
       }
-      const store = await getStore();
-      if (store.ops.includes(target)) {
+      const ops = await api.store.get("ops", defaultStore.ops);
+      if (ops.includes(target)) {
         await ch.text("用户 " + target + " 已经是管理员了！").goAutoReply();
         return;
       }
-      store.ops.push(target);
-      await setStore(store);
+      ops.push(target);
+      await api.store.set("ops", ops);
       await ch.text("已将用户 " + target + " 添加为管理员").goAutoReply();
     }, { quickCommandRegisterIgnore: true });
 
@@ -82,9 +74,9 @@ const plugin = {
         await ch.text("你不能将自己移除为管理员！").goAutoReply();
         return;
       }
-      const store = await getStore();
-      store.ops = store.ops.filter(e => e !== target);
-      await setStore(store);
+      const ops = await api.store.get("ops", defaultStore.ops);
+      ops = ops.filter(e => e !== target);
+      await api.store.set("ops", ops);
       await ch.text("已将用户 " + target + " 移除为管理员").goAutoReply();
     }, { quickCommandRegisterIgnore: true });
 
@@ -191,9 +183,10 @@ const plugin = {
       return false;
 
     }, { time: "beforeActivate" });
-    
+
     api.expose({
-      hasPermission
+      hasPermission,
+      getOpList
     });
   },
 };
