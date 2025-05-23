@@ -124,7 +124,7 @@ export default {
             try {
                 const messages = await getMessages(ch.groupId);
                 if (messages[messages.length - 1].role === "assistant") return true;
-    
+
                 const content = await aliyunChat({
                     messages: [...messages.map(e => ({
                         role: e.role,
@@ -134,7 +134,7 @@ export default {
                         content: aiHardReplyAssistant
                     }]
                 });
-    
+
                 for (let part of content.split(/(\[AT:\d+])/)) {
                     if (part.startsWith('[AT:') && part.endsWith(']')) {
                         const id = part.slice(4, -1);
@@ -168,51 +168,51 @@ export default {
 
             try {
                 const messages = await getMessages(ch.groupId);
-            if (messages[messages.length - 1].role === "assistant") return true;
+                if (messages[messages.length - 1].role === "assistant") return true;
 
-            const responseContent = (await aliyunChat({
-                messages: [...messages.map(e => ({
-                    role: e.role,
-                    content: e.content.replaceAll(aiConfig.selfQQ, "你")
-                })), {
-                    role: "assistant",
-                    content: aiAutoReplyAssistant
-                }]
-            })).trim();
+                const responseContent = (await aliyunChat({
+                    messages: [...messages.map(e => ({
+                        role: e.role,
+                        content: e.content.replaceAll(aiConfig.selfQQ, "你")
+                    })), {
+                        role: "assistant",
+                        content: aiAutoReplyAssistant
+                    }]
+                })).trim();
 
-            api.log(`[AI智能回复] 我的回应是 ${responseContent}`);
+                api.log(`[AI智能回复] 我的回应是 ${responseContent}`);
 
-            try {
-                /**
-                 * @type {{reply: boolean, msg: string}}
-                 */
-                const responseObject = JSON.parse(responseContent);
-                if (responseObject.reply === true && responseObject.msg) {
-                    const content = responseObject.msg;
-                    api.log("[AI智能回复] 我认为自己需要发言！");
-                    for (let part of content.split(/(\[AT:\d+])/)) {
-                        if (part.startsWith('[AT:') && part.endsWith(']')) {
-                            const id = part.slice(4, -1);
-                            try {
-                                ch.at(Number(id));
-                            } catch (_) {
+                try {
+                    /**
+                     * @type {{reply: boolean, msg: string}}
+                     */
+                    const responseObject = JSON.parse(responseContent);
+                    if (responseObject.reply === true && responseObject.msg) {
+                        const content = responseObject.msg;
+                        api.log("[AI智能回复] 我认为自己需要发言！");
+                        for (let part of content.split(/(\[AT:\d+])/)) {
+                            if (part.startsWith('[AT:') && part.endsWith(']')) {
+                                const id = part.slice(4, -1);
+                                try {
+                                    ch.at(Number(id));
+                                } catch (_) {
+                                }
+                            } else if (part) {
+                                if (/^\s*$/.test(part)) continue;
+                                ch.text(part);
                             }
-                        } else if (part) {
-                            if (/^\s*$/.test(part)) continue;
-                            ch.text(part);
                         }
+                        await ch.go();
+                        await pushMessage(aiConfig.selfQQ, ch.groupId, content);
+                        return false;
+                    } else {
+                        api.log(`[AI智能回复] 我选择保持沉默！`);
+                        return true;
                     }
-                    await ch.go();
-                    await pushMessage(aiConfig.selfQQ, ch.groupId, content);
-                    return false;
-                } else {
+                } catch (e) {
                     api.log(`[AI智能回复] 我选择保持沉默！`);
                     return true;
                 }
-            } catch (e) {
-                api.log(`[AI智能回复] 我选择保持沉默！`);
-                return true;
-            }
             } catch (e) {
                 api.log.error(e);
             } finally {
