@@ -94,7 +94,6 @@
  *
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
- * @property {import("../core/logger.js").Logger} logger - 日志记录器
  * @property {function(...any): void} log - 日志记录器
  * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据（已弃用，使用 store 代替）
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）

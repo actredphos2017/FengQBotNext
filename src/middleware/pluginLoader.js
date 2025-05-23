@@ -286,7 +286,7 @@ async function loadPlugin(pluginDefine) {
 
     const pluginId = pluginDefine.instance.config.id;
 
-    await pluginDefine.instance.setup({
+    const pluginAPI = {
         listen: (event, listener) => {
             logger.log(`插件 ${pluginId} 注册了事件监听器: ${event}`);
             pipe.addTrigger({
@@ -354,10 +354,6 @@ async function loadPlugin(pluginDefine) {
             logger.error(`插件 ${pluginId} 拒绝加载: ${reason}`);
             pluginDefine.rejected = true;
         },
-        logger,
-        log(...args) {
-            logger.log(...args);
-        },
         getStore: async () => {
             return await getPluginStore(pluginId);
         },
@@ -409,7 +405,37 @@ async function loadPlugin(pluginDefine) {
                 removeJob(pluginId, job);
             }
         }
-    });
+    }
+
+    const withPrefix = (args) => {
+        return [`[${pluginDefine.instance.config.id}]`, ...args]; // TODO
+    }
+
+    pluginAPI.log = function(...args) {
+        logger.log(...withPrefix(args));
+    }
+
+    pluginAPI.log.error = function(...args) {
+        logger.error(...withPrefix(args));
+    }
+
+    pluginAPI.log.log = function(...args) {
+        logger.log(...withPrefix(args));
+    }
+
+    pluginAPI.log.warn = function(...args) {
+        logger.warn(...withPrefix(args));
+    }
+
+    pluginAPI.log.debug = function(...args) {
+        logger.debug(...withPrefix(args));
+    }
+
+    pluginAPI.log.info = function(...args) {
+        logger.info(...withPrefix(args));
+    }
+
+    await pluginDefine.instance.setup(pluginAPI);
 
     return pluginDefine;
 }

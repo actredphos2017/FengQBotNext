@@ -150,7 +150,7 @@ export default {
                 await ch.go();
                 await pushMessage(aiConfig.selfQQ, ch.groupId, content);
             } catch (e) {
-                api.logger.error(e);
+                api.log.error(e);
             } finally {
                 chatLock[ch.groupId] = false;
             }
@@ -214,7 +214,7 @@ export default {
                 return true;
             }
             } catch (e) {
-                api.logger.error(e);
+                api.log.error(e);
             } finally {
                 chatLock[ch.groupId] = false;
             }
