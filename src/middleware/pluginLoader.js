@@ -66,6 +66,9 @@ const jobs = {};
  */
 function clearJobs(pluginId = undefined) {
     if (pluginId) {
+        if (!jobs[pluginId]) {
+            return;
+        }
         jobs[pluginId].forEach(job => {
             job.cancel();
         });
