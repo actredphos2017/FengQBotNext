@@ -8,6 +8,7 @@ import { getLoadLevel } from "../types/plugins.js";
 import { logger } from "../core/logger.js";
 import { getFace } from "../lib/faces.js";
 import sqlite3Prototype from 'sqlite3';
+import schedule from 'node-schedule';
 
 const sqlite3 = sqlite3Prototype.verbose();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -54,6 +55,68 @@ function setPluginStore(pluginId, data) {
 }
 
 /**
+ * @type {{ [key: string]: schedule.Job[] }}
+ */
+const jobs = {};
+
+/**
+ * @param {string?} pluginId
+ */
+function clearJobs(pluginId = undefined) {
+    if (pluginId) {
+        jobs[pluginId].forEach(job => {
+            job.cancel();
+        });
+    } else {
+        Object.values(jobs).forEach(job => {
+            job.forEach(job => {
+                job.cancel();
+            });
+        });
+    }
+}
+
+
+/**
+ * 创建一个定时任务。
+ *
+ * @param {string} pluginId - 插件的唯一标识符，用于在任务执行失败时记录日志。
+ * @param {string} cron - 定时任务的执行时间。
+ * @param {Function} fn - 定时任务执行时要调用的异步函数。
+ * @returns {schedule.Job} 返回一个由 node-schedule 创建的定时任务实例。
+ */
+function createJob(pluginId, cron, fn) {
+    const job = schedule.scheduleJob(cron, async () => {
+        try {
+            await fn();
+        } catch (e) {
+            logger.error(`插件 ${pluginId} 的定时任务 ${time} 执行失败: ${e.message}`);
+        }
+    });
+    if (!jobs[pluginId]) {
+        jobs[pluginId] = [];
+    }
+    jobs[pluginId].push(job);
+    return job;
+}
+
+/**
+ *  移除一个定时任务。
+ * @param {string} pluginId - 插件的唯一标识符。
+ * @param {schedule.Job} job - 要移除的定时任务实例。
+ * @returns {void}
+ */
+function removeJob(pluginId, job) {
+    if (jobs[pluginId]) {
+        const index = jobs[pluginId].indexOf(job);
+        if (index !== -1) {
+            job.cancel();
+            jobs[pluginId].splice(index, 1);
+        }
+    }
+}
+
+/**
  * @typedef {Object} PluginDefine
  * @property {import("../types/plugins").PluginInfo} instance - 插件实例
  * @property {boolean} loaded - 插件是否已加载
@@ -63,7 +126,7 @@ function setPluginStore(pluginId, data) {
  * @property {import("../types/plugins").LoadLevel} level - 加载等级
  * @property {boolean} rejected - 插件是否拒绝加载
  * @property {{
- *     fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
+ *     fn: (ch: import("../types/plugins").ContextHelper, ...args: string[]) => void | Promise<void>,
  *     config: import("../types/plugins").CommandConfig,
  *     trigger: string[]
  * }[]} commands - 插件注册的命令
@@ -75,36 +138,40 @@ function setPluginStore(pluginId, data) {
  */
 const plugins = {};
 
+const emptyQuickCommand = {};
+
 /**
  * @type {{ [key: string]: {
  *     pluginId: string,
  *     command: {
  *         fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
- *         description: string,
+ *         config: import("../types/plugins").CommandConfig,
  *         trigger: string[]
  *     }
  * } }}
  */
-const quickCommands = {};
+let quickCommands = emptyQuickCommand;
 
 /**
  * @typedef {(ch: ContextHelper) => (boolean | Promise<boolean>)} SuperCommandFn
  */
 
-/**
- * @type {{
- *     beforeActivate: { [pluginId: string]: SuperCommandFn}
- *     afterActivate: { [pluginId: string]: SuperCommandFn}
- *     onActivateFailed: { [pluginId: string]: SuperCommandFn}
- *     onFinally: { [pluginId: string]: SuperCommandFn}
- * }}
- */
-const superCommands = {
+const emptySuperCommand = {
     beforeActivate: [],
     afterActivate: [],
     onActivateFailed: [],
     onFinally: []
-}
+};
+
+/**
+ * @type {{
+ *     beforeActivate: { [pluginId: string]: SuperCommandFn }[]
+ *     afterActivate: { [pluginId: string]: SuperCommandFn }[]
+ *     onActivateFailed: { [pluginId: string]: SuperCommandFn }[]
+ *     onFinally: { [pluginId: string]: SuperCommandFn }[]
+ * }}
+ */
+let superCommands = emptySuperCommand;
 
 async function loadPlugins(hard = false) {
     try {
@@ -151,9 +218,15 @@ async function loadPlugins(hard = false) {
         logger.error('加载插件目录失败:', error);
     }
 
-    const pluginList = Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; });
+    /**
+     * @type {PluginDefine[]}
+     */
+    const pluginList = Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; }).toSorted((a, b) => b.level - a.level);
 
-    for (const plugin of pluginList.toSorted((a, b) => b.level - a.level)) {
+    superCommands = emptySuperCommand;
+    quickCommands = emptyQuickCommand;
+
+    for (const plugin of pluginList) {
         if (!plugin.loaded) {
             try {
                 await loadPlugin(plugin);
@@ -162,18 +235,21 @@ async function loadPlugins(hard = false) {
                     continue;
                 }
                 plugin.loaded = true;
-                plugin.superCommands.forEach(e => {
-                    superCommands[e.time][plugin.instance.config.id] = e.fn;
-                })
                 logger.log(`插件 ${plugin.instance.config.id} 已成功加载`);
             } catch (error) {
                 plugin.error = true;
                 logger.error(`加载插件 ${plugin.instance.config.id} 时出错:`, error);
             }
         }
+
+        if (plugin.loaded && !plugin.rejected) {
+            plugin.superCommands.forEach(e => {
+                superCommands[e.time][plugin.instance.config.id] = e.fn;
+            });
+        }
     }
 
-    for (const plugin of pluginList.toSorted((a, b) => a.level - b.level)) {
+    for (const plugin of pluginList.reverse()) {
         if (plugin.loaded && !plugin.rejected) {
             for (const command of plugin.commands) {
                 if (command.config.quickCommandRegisterIgnore === true) {
@@ -316,6 +392,14 @@ async function loadPlugin(pluginDefine) {
                         await setPluginStore(pluginId, JSON.stringify({[key]: value}));
                     }
                 }
+            }
+        },
+        schedule: {
+            create: (cron, fn) => {
+                return createJob(pluginId, cron, fn);
+            },
+            remove: (job) => {
+                removeJob(pluginId, job);
             }
         }
     });
@@ -485,6 +569,106 @@ export function pluginLoader(config = {}) {
         })
     }
 
+    const mainHander = async ({ context, qqBot }) => {
+
+        logger.log("收到消息：", JSON.stringify(context.message));
+
+        // 超级命令
+        for (const [pluginId, fn] of Object.entries(superCommands.beforeActivate)) {
+            const res = await fn(contextHelper(context, qqBot));
+            if (res === false) {
+                logger.log(`插件 ${pluginId} 的超级命令在 beforeActivate 时机阻止了命令默认执行`);
+                return;
+            }
+        }
+
+        if (context.message.length < 1) {
+            return;
+        }
+
+        const parts = config.activate(context);
+        if (!parts) {
+            // 超级命令
+            for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
+                const res = await fn(contextHelper(context, qqBot));
+                if (res === false) {
+                    logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
+                    return;
+                }
+            }
+            return;
+        }
+
+        logger.log("消息已命中，关键字：", parts.join(", "));
+
+        let command, cmdName;
+        let args = [];
+
+        if (parts[0].startsWith("$")) {
+            // 具名模式
+            logger.log(`正在使用具名模式搜索`);
+            const pluginId = parts[0].slice(1);
+            cmdName = parts[1];
+            const plugin = plugins[pluginId];
+            if (!plugin) {
+                logger.log(`插件 ${pluginId} 未找到`);
+                return;
+            }
+            logger.log(`插件 ${pluginId} 已找到`);
+            command = plugin.commands.find((command) => {
+                return command.trigger.includes(cmdName);
+            });
+            args = parts.slice(2);
+        } else {
+            // 快捷模式
+            logger.log(`正在使用快捷模式搜索`);
+            cmdName = parts[0];
+            const quickCmd = quickCommands[cmdName];
+            if (quickCmd) {
+                command = quickCmd.command;
+            }
+            args = parts.slice(1);
+        }
+
+
+        if (!command) {
+            // 超级命令
+            for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
+                const res = await fn(contextHelper(context, qqBot));
+                if (res === false) {
+                    logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
+                    return;
+                }
+            }
+            return;
+        } else {
+            logger.log(`命令 ${cmdName} 已找到`);
+            // 超级命令
+            for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
+                const res = await fn(contextHelper(context, qqBot));
+                if (res === false) {
+                    logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令默认执行`);
+                    return;
+                }
+            }
+        }
+
+        try {
+            await command.fn(contextHelper(context, qqBot), ...args);
+        } catch (e) {
+            logger.error(`命令 ${cmdName} 执行出错：`, e);
+        }
+
+        // 超级命令
+        for (const [pluginId, fn] of Object.entries(superCommands.onFinally)) {
+            const res = await fn(contextHelper(context, qqBot));
+            if (res === false) {
+                logger.log(`插件 ${pluginId} 的超级命令在 onFinally 时机阻止了命令默认执行`);
+                return;
+            }
+        }
+    };
+
     return [
         {
             type: "middleware",
@@ -496,105 +680,7 @@ export function pluginLoader(config = {}) {
             type: "trigger",
             value: {
                 event: "NAPCAT_MESSAGE",
-                handler: async ({ context, qqBot }) => {
-
-                    logger.log("收到消息：", JSON.stringify(context.message));
-
-                    // 超级命令
-                    for (const [pluginId, fn] of Object.entries(superCommands.beforeActivate)) {
-                        const res = await fn(contextHelper(context, qqBot));
-                        if (res === false) {
-                            logger.log(`插件 ${pluginId} 的超级命令在 beforeActivate 时机阻止了命令默认执行`);
-                            return;
-                        }
-                    }
-
-                    if (context.message.length < 1) {
-                        return;
-                    }
-
-                    const parts = config.activate(context);
-                    if (!parts) {
-                        // 超级命令
-                        for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
-                            const res = await fn(contextHelper(context, qqBot));
-                            if (res === false) {
-                                logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
-                                return;
-                            }
-                        }
-                        return;
-                    }
-
-                    logger.log("消息已命中，关键字：", parts.join(", "));
-
-                    let command, cmdName;
-                    let args = [];
-
-                    if (parts[0].startsWith("$")) {
-                        // 具名模式
-                        logger.log(`正在使用具名模式搜索`);
-                        const pluginId = parts[0].slice(1);
-                        cmdName = parts[1];
-                        const plugin = plugins[pluginId];
-                        if (!plugin) {
-                            logger.log(`插件 ${pluginId} 未找到`);
-                            return;
-                        }
-                        logger.log(`插件 ${pluginId} 已找到`);
-                        command = plugin.commands.find((command) => {
-                            return command.trigger.includes(cmdName);
-                        });
-                        args = parts.slice(2);
-                    } else {
-                        // 快捷模式
-                        logger.log(`正在使用快捷模式搜索`);
-                        cmdName = parts[0];
-                        const quickCmd = quickCommands[cmdName];
-                        if (quickCmd) {
-                            command = quickCmd.command;
-                        }
-                        args = parts.slice(1);
-                    }
-
-
-                    if (!command) {
-                        // 超级命令
-                        for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
-                            const res = await fn(contextHelper(context, qqBot));
-                            if (res === false) {
-                                logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
-                                return;
-                            }
-                        }
-                        return;
-                    } else {
-                        logger.log(`命令 ${cmdName} 已找到`);
-                        // 超级命令
-                        for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
-                            const res = await fn(contextHelper(context, qqBot));
-                            if (res === false) {
-                                logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令默认执行`);
-                                return;
-                            }
-                        }
-                    }
-
-                    try {
-                        await command.fn(contextHelper(context, qqBot), ...args);
-                    } catch (e) {
-                        logger.error(`命令 ${cmdName} 执行出错：`, e);
-                    }
-
-                    // 超级命令
-                    for (const [pluginId, fn] of Object.entries(superCommands.onFinally)) {
-                        const res = await fn(contextHelper(context, qqBot));
-                        if (res === false) {
-                            logger.log(`插件 ${pluginId} 的超级命令在 onFinally 时机阻止了命令默认执行`);
-                            return;
-                        }
-                    }
-                }
+                handler: mainHander
             }
         },
         {

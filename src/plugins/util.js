@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from "node:url";
-import { tmpdir } from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
@@ -51,7 +50,7 @@ const plugin = {
 
     api.cmd(["reload"], async (ch) => {
       if (!(await hasPermission(ch))) {
-        ch.text("你没有权限执行此命令！").goAutoReply();
+        await ch.text("你没有权限执行此命令！").goAutoReply();
         return;
       }
       await ch.text("正在重载插件...").goAutoReply();
@@ -61,32 +60,32 @@ const plugin = {
 
     api.cmd(["op"], async (ch, target) => {
       if (!(await hasPermission(ch))) {
-        ch.text("你没有权限执行此命令！").goAutoReply();
+        await ch.text("你没有权限执行此命令！").goAutoReply();
         return;
       }
       const store = await getStore();
       if (store.ops.includes(target)) {
-        ch.text("用户 " + target + " 已经是管理员了！").goAutoReply();
+        await ch.text("用户 " + target + " 已经是管理员了！").goAutoReply();
         return;
       }
       store.ops.push(target);
       await setStore(store);
-      ch.text("已将用户 " + target + " 添加为管理员").goAutoReply();
+      await ch.text("已将用户 " + target + " 添加为管理员").goAutoReply();
     }, { quickCommandRegisterIgnore: true });
 
     api.cmd(["deop"], async (ch, target) => {
       if (!(await hasPermission(ch))) {
-        ch.text("你没有权限执行此命令！").goAutoReply();
+        await ch.text("你没有权限执行此命令！").goAutoReply();
         return;
       }
-      if (target === ch.userId) {
-        ch.text("你不能将自己移除为管理员！").goAutoReply();
+      if (target === String(ch.userId)) {
+        await ch.text("你不能将自己移除为管理员！").goAutoReply();
         return;
       }
       const store = await getStore();
       store.ops = store.ops.filter(e => e !== target);
       await setStore(store);
-      ch.text("已将用户 " + target + " 移除为管理员").goAutoReply();
+      await ch.text("已将用户 " + target + " 移除为管理员").goAutoReply();
     }, { quickCommandRegisterIgnore: true });
 
     api.super(async (ch) => {

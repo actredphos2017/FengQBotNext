@@ -132,7 +132,7 @@ if (ch.isGroup) {
 }
 ```
 
-处于群聊时，你可以通过 `ch.at()` 来艾特其他人，或者使用 `ch.reply()` 来回复信息。
+处于群聊时，你可以通过 `ch.at()` 来艾特其他人，或者使用 `ch.reply()` 来回复信息。如果不在群聊，这两个方法不会产生任何作用。
 
 ```js
 // 群聊环境
@@ -141,7 +141,7 @@ ch.reply();
 
 ch.at(); // 不提供参数时，会艾特发送者
 
-// ch.at(123456789); 提供QQ号时，会艾特指定的QQ号（如果在群里）
+// ch.at(123456789); 提供QQ号时，会艾特指定的QQ号的群友（如果在群里）
 
 ch.text("你好，这是一条艾特消息");
 
@@ -162,6 +162,16 @@ await ch.text("你好！").goAutoReply();
 你可以通过 `ch.context` 来获取 Napcat 提供的原始上下文对象；使用 `ch.napcat` 获取 `NCWebsocket` 对象，以此实现更多功能。
 
 ## 高级功能与概念
+
+> **章节简述**
+>
+> 根据你的需求快速定位章节：
+>
+> - **快捷命令**：你可以直接通过你定义的方法名来调用命令，而无需显式声明插件id。
+> - **持久化存储**：你可以通过 `api.store` 对象来实现持久化存储，在机器人重启、更新，或插件重载时保存数据。
+> - **定时任务**：你可以通过 `api.schedule` 对象来实现定时任务，使用 `cron` 表达式指定时间点执行任务。
+> - **超级命令**：你可以定义一种特殊的命令，该命令在任何情况下被调用，而不管当前的上下文类型或是否被激活。
+> - **插件通信、成员暴露与访问**：访问工具插件，或者创建一系列插件集并让它们互相协作，共同完成复杂目标。
 
 ### 快捷命令
 
@@ -218,9 +228,88 @@ await store.set("data", { key: "value" }); // 设置数据。
 
 > 需要注意，底层存储方式为 Node 原生 JSON ，所以你需要保证存储的数据能够通过 `JSON.stringify` 方法序列化，并通过 `JSON.parse` 反序列化。
 
-### 组件成员暴露与访问
 
-`PluginAPI` 提供了 `api.expose` 方法来暴露组件成员。
+### 定时任务
+
+`PluginAPI` 提供了 `api.schedule` 对象来实现定时任务。
+
+```js
+const schedule = api.schedule;
+
+let job = schedule.create("0 0 0 * * *", () => { // 每天 0 点执行
+    console.log("Hello World!");
+}); // 返回一个 ScheduleJob 对象，可以通过它来操作定时任务。
+
+schedule.remove(job); // 取消定时任务
+```
+
+### 超级命令
+
+超级命令是一种特殊的命令，它可以在任何情况下被调用，而不管当前的上下文类型或是否被激活。
+
+你可以把它当成一个拦截器，可以在一个消息接收的任何时间点拦截，默默处理一点事情或者直接取消后面的逻辑。
+
+拦截时机如下：
+
+- `"beforeActivate"` ：消息接收后、命令识别前。
+- `"onActivateFailed"` ：命令识别失败后。
+- `"afterActivate"` ：命令识别成功后、命令代码执行前。
+- `"onFinally"` ：命令代码执行后。
+
+具体流程图如下：
+
+![消息生命周期](doc_img/timecycle.png)
+
+示范：默默保存群聊历史记录
+
+```js
+//PLUGINX
+
+export default {
+    config: { /* ... */ },
+    setup(api) {
+        const store = api.store;
+
+        async function saveHistory(ch) {
+            const groupId = ch.groupId;
+            const message = ch.getPureMessage(false);
+            const history = await store.get(`history:${groupId}`, []);
+            history.push(message);
+            await store.set(`history:${groupId}`, history);
+
+            return true; // 允许后面的逻辑执行
+        }
+
+        api.super(saveHistory, {
+            time: "beforeActivate" // 拦截时机
+        });
+    }
+}
+
+```
+
+
+### 插件通信、成员暴露与访问
+
+#### 插件通信
+
+`PluginAPI` 提供了 `api.listen` 和 `api.send` 方法来实现插件通信。
+
+```js
+// 插件 A setup 函数
+
+api.listen("TEST_SIGNAL", (data) => {
+    console.log(data); // 输出：Hello World!
+});
+
+// 插件 B setup 函数
+
+api.send("TEST_SIGNAL", "Hello World!");
+```
+
+#### 成员暴露与访问
+
+`PluginAPI` 提供了 `api.expose` 方法来暴露插件成员。
 
 ```js
 //PLUGINX
@@ -333,45 +422,3 @@ false
 true
 ```
 
-### 超级命令
-
-超级命令是一种特殊的命令，它可以在任何情况下被调用，而不管当前的上下文类型或是否被激活。
-
-你可以把它当成一个拦截器，可以在一个消息接收的任何时间点拦截，默默处理一点事情或者直接取消后面的逻辑。
-
-拦截时机如下：
-
-- `"beforeActivate"` ：消息接收后、命令识别前。
-- `"onActivateFailed"` ：命令识别失败后。
-- `"afterActivate"` ：命令识别成功后、命令代码执行前。
-- `"onFinally"` ：命令代码执行后。
-
-具体流程图如下：
-
-![消息生命周期](doc_img/timecycle.png)
-
-示范：默默保存群聊历史记录
-
-```js
-//PLUGINX
-
-export default {
-    config: { /* ... */ },
-    setup(api) {
-        const store = api.store;
-
-        async function saveHistory(ch) {
-            const groupId = ch.groupId;
-            const message = ch.getPureMessage(false);
-            const history = await store.get(`history:${groupId}`, []);
-            history.push(message);
-            await store.set(`history:${groupId}`, history);
-
-            return true; // 允许后面的逻辑执行
-        }
-
-        api.super(saveHistory, {
-            time: "beforeActivate" // 拦截时机
-        });
-    }
-}

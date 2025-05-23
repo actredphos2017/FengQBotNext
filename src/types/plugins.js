@@ -16,8 +16,8 @@
 
 /**
  * @typedef {Object} CommandConfig
- * @property {string} description - 命令描述
- * @property {boolean} quickCommandRegisterIgnore - 是否忽略快速命令注册
+ * @property {string?} description - 命令描述
+ * @property {boolean?} quickCommandRegisterIgnore - 是否忽略快速命令注册
  */
 
 
@@ -46,8 +46,8 @@
 
 /**
  * @typedef {Object} SuperCommandConfig
- * @property {string} description - 超级命令描述
- * @property {"beforeActivate" | "afterActivate" | "onActivateFailed" | "onFinally"} time - 执行时机
+ * @property {string?} description - 超级命令描述
+ * @property {("beforeActivate" | "afterActivate" | "onActivateFailed" | "onFinally")?} time - 执行时机
  */
 
 /**
@@ -65,9 +65,15 @@
  */
 
 /**
+ * @typedef {Object} PluginAPISchedule
+ * @property {(cron: string, fn: function(): void) => import("node-schedule").Job} create
+ * @property {(job: import("node-schedule").Job) => void} remove
+ */
+
+/**
  * @typedef {Object} PluginAPI
  * @property {function(string, EventListener): void} listen - 注册事件监听器
- * @property {function(string, any): Promise<void>} send - 发送事件
+ * @property {function(string, any?): Promise<void>} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {function(string, (api: PluginInterface) => (T | Promise<T>)): Promise<T>} withPlugin - 导入并使用插件接口
  *
@@ -81,6 +87,7 @@
  * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据（已弃用，使用 store 代替）
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
  * @property {PluginAPIStore} store - 更好的持久化数据访问方法
+ * @property {PluginAPISchedule} schedule - 定时任务装饰器
  */
 
 /**
