@@ -132,12 +132,10 @@ if (ch.isGroup) {
 }
 ```
 
-处于群聊时，你可以通过 `ch.at()` 来艾特其他人，或者使用 `ch.reply()` 来回复信息。如果不在群聊，这两个方法不会产生任何作用。
+处于群聊时，你可以通过 `ch.at()` 来艾特其他人。如果不在群聊，这个方法不会产生任何作用。
 
 ```js
 // 群聊环境
-
-ch.reply();
 
 ch.at(); // 不提供参数时，会艾特发送者
 
@@ -145,7 +143,7 @@ ch.at(); // 不提供参数时，会艾特发送者
 
 ch.text("你好，这是一条艾特消息");
 
-await ch.go(); // 回复: @发送者 你好，这是一条艾特消息
+await ch.go(); // @发送者 你好，这是一条艾特消息
 ```
 
 你可以使用完成封装的 `ch.goAutoReply()` 来自动回复信息。
@@ -153,7 +151,7 @@ await ch.go(); // 回复: @发送者 你好，这是一条艾特消息
 ```js
 await ch.text("你好！").goAutoReply();
 
-// 群聊环境： 回复: @发送者 你好！
+// 群聊环境： 回复[发送者]: 你好！
 // 私聊环境： 你好！
 ```
 
@@ -236,8 +234,15 @@ await store.set("data", { key: "value" }); // 设置数据。
 ```js
 const schedule = api.schedule;
 
-let job = schedule.create("0 0 0 * * *", () => { // 每天 0 点执行
-    console.log("Hello World!");
+// 创建一个每天 0 点执行的定时任务
+let job = schedule.create("0 0 0 * * *", () => {
+
+    const bh = api.createBot(); // BotHelper 实例，跟 ContextHelper 类似，但是没有上下文信息。
+    
+    bh.openGroup(123456789); // 打开群聊
+    bh.text("今天是星期" + new Date().getDay()); // 输入信息
+    await bh.go(); // 发送消息
+
 }); // 返回一个 ScheduleJob 对象，可以通过它来操作定时任务。
 
 schedule.remove(job); // 取消定时任务

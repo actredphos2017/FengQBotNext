@@ -5,7 +5,7 @@ import { logger } from '../core/logger.js';
 /**
  * @type {Mountable}
  */
-export default {
+const obj = {
     async init(
         onEvent
     ) {
@@ -39,7 +39,10 @@ export default {
         await qqBot.connect();
         logger.log("连接成功！");
         qqBot.on('message', (context) => {
-            onEvent("NAPCAT_MESSAGE", {context, qqBot});
+            onEvent("NAPCAT_MESSAGE", {context});
         });
+        obj.qqBot = qqBot;
     }
 }
+
+export default obj;

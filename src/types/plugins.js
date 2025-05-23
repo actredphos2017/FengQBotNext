@@ -45,6 +45,17 @@
  */
 
 /**
+ * @typedef {Object} BotHelper - 机器人助手
+ * @property {(groupId: number | string) => BotHelper} openGroup - 打开群聊
+ * @property {(userId: number | string) => BotHelper} openPrivate - 打开私聊
+ * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例
+ * @property {(image: string | Blob | Buffer, name?: string) => ContextHelper} image - 设置图片内容并返回上下文助手实例
+ * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
+ * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
+ * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
+*/
+
+/**
  * @typedef {Object} SuperCommandConfig
  * @property {string?} description - 超级命令描述
  * @property {("beforeActivate" | "afterActivate" | "onActivateFailed" | "onFinally")?} time - 执行时机
@@ -75,6 +86,7 @@
  * @property {function(string, EventListener): void} listen - 注册事件监听器
  * @property {function(string, any?): Promise<void>} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
+ * @property {() => BotHelper} createBot - 机器人助手
  * @property {function(string, (api: PluginInterface) => (T | Promise<T>)): Promise<T>} withPlugin - 导入并使用插件接口
  *
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令

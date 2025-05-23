@@ -10,6 +10,8 @@ import { getFace } from "../lib/faces.js";
 import sqlite3Prototype from 'sqlite3';
 import schedule from 'node-schedule';
 
+let qqBot = undefined;
+
 const sqlite3 = sqlite3Prototype.verbose();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let db = undefined;
@@ -295,6 +297,7 @@ async function loadPlugin(pluginDefine) {
         expose: (api) => {
             pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
         },
+        createBot: botHelper(),
         withPlugin: (pluginId, func) => {
             const plugin = plugins[pluginId];
             let api;
@@ -409,10 +412,9 @@ async function loadPlugin(pluginDefine) {
 
 /**
  * @param {Context} ctx - 上下文对象，包含消息相关信息和操作方法。
- * @param {Object} qqBot
  * @returns {import("../types/plugins.js").ContextHelper}
  */
-function contextHelper(ctx, qqBot) {
+function contextHelper(ctx) {
 
     let requestBuffer = [];
 
@@ -537,6 +539,110 @@ function contextHelper(ctx, qqBot) {
 }
 
 /**
+ * @returns {import("../types/plugins.js").BotHelper}
+ */
+function botHelper() {
+    let requestBuffer = [];
+    let virtualContext = undefined;
+
+    return {
+        openGroup(groupId) {
+            virtualContext = {
+                id: groupId,
+                isGroup: true
+            };
+            requestBuffer = [];
+            return this;
+        },
+        openPrivate(userId) {
+            virtualContext = {
+                id: userId,
+                isGroup: false
+            };
+            requestBuffer = [];
+        },
+        text(text) {
+            requestBuffer.push({type: "text", data: {text}});
+            return this;
+        },
+        image(image, name = undefined) {
+            requestBuffer.push({type: "image", data: {image, name}});
+            return this;
+        },
+        at(who) {
+            if (virtualContext.isGroup)
+                requestBuffer.push({ type: "at", data: { who } });
+            return this;
+        },
+        face(instance) {
+            if (typeof instance === "string" || typeof instance === "number") {
+                const faceInstance = getFace(instance);
+                if (faceInstance) {
+                    instance = faceInstance;
+                }
+            }
+            requestBuffer.push({ type: "instance", data: { instance } });
+            return this;
+        },
+        async go() {
+            const message = [];
+            for (const item of requestBuffer) {
+                if (item.type === "text") {
+                    message.push({type: "text", data: {text: String(item.data.text)}});
+                } else if (item.type === "image") {
+                    let image = item.data.image;
+                    const name = item.data.name;
+                    if (typeof image !== 'string') {
+                        if (image instanceof Blob) {
+                            image = Buffer.from(await image.arrayBuffer()).toString("base64");
+                        } else if (image instanceof Buffer) {
+                            image = image.toString('base64');
+                        }
+                    } else {
+                        logger.error('不支持的图片类型');
+                        continue;
+                    }
+
+                    if (!image.startsWith("base64://"))
+                        image = `base64://${image}`;
+
+                    message.push({
+                        type: "image",
+                        data: { file: image, name }
+                    });
+                } else if (item.type === "at") {
+                    message.push({ type: "at", data: { qq: item.data.who } });
+                    message.push({ type: "text", data: { text: " " } });
+                } else if (item.type === "reply") {
+                    message.push({ type: "reply", data: { id: item.data.id } });
+                } else if (item.type === "instance") {
+                    message.push(item.data.instance);
+                }
+            }
+
+            let prepareLog = JSON.stringify(message);
+            if (prepareLog.length > 50) {
+                prepareLog = prepareLog.slice(0, 50) + "...";
+            }
+            logger.log("发送消息：", prepareLog);
+            if (virtualContext.isGroup) {
+                await qqBot.send_group_msg({
+                    group_id: virtualContext.id,
+                    message
+                });
+            } else {
+                await qqBot.send_private_msg({
+                    user_id: virtualContext.id,
+                    message
+                });
+            }
+            requestBuffer = [];
+        }
+    }
+
+}
+
+/**
  * @typedef {Object} PluginLoaderConfig
  * @property {((context: Context) => (string[] | undefined))?} activate
  */
@@ -569,13 +675,13 @@ export function pluginLoader(config = {}) {
         })
     }
 
-    const mainHander = async ({ context, qqBot }) => {
+    const mainHander = async ({ context }) => {
 
         logger.log("收到消息：", JSON.stringify(context.message));
 
         // 超级命令
         for (const [pluginId, fn] of Object.entries(superCommands.beforeActivate)) {
-            const res = await fn(contextHelper(context, qqBot));
+            const res = await fn(contextHelper(context));
             if (res === false) {
                 logger.log(`插件 ${pluginId} 的超级命令在 beforeActivate 时机阻止了命令默认执行`);
                 return;
@@ -590,7 +696,7 @@ export function pluginLoader(config = {}) {
         if (!parts) {
             // 超级命令
             for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
-                const res = await fn(contextHelper(context, qqBot));
+                const res = await fn(contextHelper(context));
                 if (res === false) {
                     logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
                     return;
@@ -634,7 +740,7 @@ export function pluginLoader(config = {}) {
         if (!command) {
             // 超级命令
             for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
-                const res = await fn(contextHelper(context, qqBot));
+                const res = await fn(contextHelper(context));
                 if (res === false) {
                     logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
                     return;
@@ -645,7 +751,7 @@ export function pluginLoader(config = {}) {
             logger.log(`命令 ${cmdName} 已找到`);
             // 超级命令
             for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
-                const res = await fn(contextHelper(context, qqBot));
+                const res = await fn(contextHelper(context));
                 if (res === false) {
                     logger.log(`插件 ${pluginId} 的超级命令在 afterActivate 时机阻止了命令默认执行`);
                     return;
@@ -654,14 +760,14 @@ export function pluginLoader(config = {}) {
         }
 
         try {
-            await command.fn(contextHelper(context, qqBot), ...args);
+            await command.fn(contextHelper(context), ...args);
         } catch (e) {
             logger.error(`命令 ${cmdName} 执行出错：`, e);
         }
 
         // 超级命令
         for (const [pluginId, fn] of Object.entries(superCommands.onFinally)) {
-            const res = await fn(contextHelper(context, qqBot));
+            const res = await fn(contextHelper(context));
             if (res === false) {
                 logger.log(`插件 ${pluginId} 的超级命令在 onFinally 时机阻止了命令默认执行`);
                 return;
@@ -672,8 +778,14 @@ export function pluginLoader(config = {}) {
     return [
         {
             type: "middleware",
-            value: defineMiddleware("afterInit", () => {
-                loadPlugins();
+            value: defineMiddleware("afterInit", (obj) => {
+                if (obj.qqBot) {
+                    qqBot = obj.qqBot;
+                    loadPlugins();
+                } else {
+                    logger.error("未找到QQ机器人实例");
+                }
+                return obj;
             })
         },
         {
