@@ -269,7 +269,9 @@ export default {
             return res;
         }
 
-        api.cmd(["强制说话"], aiResponse);
+        api.cmd(["强制说话"], aiResponse, {
+            description: "强制让机器人在群聊中说话，让她没有办法保持沉默，必须说话。",
+        });
 
         api.cmd(["ai激活"], async (ch, group = undefined) => {
             api.outside.util.hasPermission(ch)
@@ -295,6 +297,8 @@ export default {
                 await api.store.set("aiAcitvatedGroups", store);
                 await ch.text(`群 ${groupId} 的 AI 功能已激活！`).goAutoReply();
             }
+        }, {
+            description: "[管理员命令] 在一个群中激活 AI 功能，让机器人可以在群聊中参与互动。",
         });
 
         api.cmd(["ai禁用"], async (ch, group = undefined) => {
@@ -320,6 +324,8 @@ export default {
                 await api.store.set("aiAcitvatedGroups", store);
                 await ch.text(`群 ${groupId} 的 AI 功能已禁用！`).goAutoReply();
             }
+        }, {
+            description: "[管理员命令] 在一个群中禁用 AI 功能，让机器人不再参与群聊互动。",
         });
 
         api.cmd(["删除历史记录"], async (ch, groupId = undefined) => {
@@ -344,6 +350,8 @@ export default {
                 await api.store.set("historyMessages", store);
                 await ch.text(`群 ${groupId} 的历史记录已删除！`).goAutoReply();
             }
+        }, {
+            description: "[管理员命令] 删除一个群聊的历史记录，让机器人忘记之前的聊天记录。",
         });
 
         api.super(async (ch) => {
