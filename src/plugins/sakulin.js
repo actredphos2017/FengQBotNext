@@ -81,7 +81,7 @@ export default {
          * @param {any} config
          * @returns {Promise<string>}
          */
-        async function aliyunChat(data) {
+        async function chat(data) {
             data = {
                 messages: data.messages,
                 model: data.model ?? "deepseek-r1",
@@ -107,6 +107,18 @@ export default {
             return responseContent;
         }
 
+        /**
+         * @param {string} question
+         */
+        async function aiAnswer(question) {
+            return await chat({
+                messages: [{
+                    role: "user",
+                    content: question
+                }]
+            });
+        }
+
         const chatLock = {};
 
         async function aiResponse(ch) {
@@ -125,7 +137,7 @@ export default {
                 const messages = await getMessages(ch.groupId);
                 if (messages[messages.length - 1].role === "assistant") return true;
 
-                const content = await aliyunChat({
+                const content = await chat({
                     messages: [...messages.map(e => ({
                         role: e.role,
                         content: e.content.replaceAll(aiConfig.selfQQ, "你")
@@ -170,7 +182,7 @@ export default {
                 const messages = await getMessages(ch.groupId);
                 if (messages[messages.length - 1].role === "assistant") return true;
 
-                const responseContent = (await aliyunChat({
+                const responseContent = (await chat({
                     messages: [...messages.map(e => ({
                         role: e.role,
                         content: e.content.replaceAll(aiConfig.selfQQ, "你")
@@ -340,5 +352,7 @@ export default {
         }, { time: "beforeActivate" });
 
         api.super(aiAutoResponse, { time: "onActivateFailed" });
+
+        api.expose({ aiAnswer });
     }
 }

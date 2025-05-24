@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from "node:url";
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+import { generateDOMCode } from '../utils/help.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -183,6 +184,43 @@ const plugin = {
       return false;
 
     }, { time: "beforeActivate" });
+
+    api.cmd(["帮助", "?", "？"], async (ch) => {
+      /**
+       * @type {{[pluginId: string]: import("../types/plugins").PluginDefine}}
+       */
+      const plugins = api.outside.__plugins;
+
+      function getPluginName(pluginId) {
+        const plugin = plugins[pluginId];
+        if (plugin) {
+          return plugin.instance.config.name;
+        } else {
+          return pluginId;
+        }
+      }
+
+      /**
+      * @type {{
+      *     pluginId: string,
+      *     fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
+      *     config: import("../types/plugins").CommandConfig,
+      *     trigger: string[]
+      * }[]}
+      */
+      const commands = api.outside.__commands;
+
+      const img = await api.outside.render.renderHtml({
+        html: generateDOMCode(commands.map(e => ({
+          command: e.trigger[0],
+          alias: e.trigger.length > 1 ? e.trigger.slice(1).join(" 或 ") : undefined,
+          description: e.config.description,
+          plugin: getPluginName(e.pluginId)
+        })))
+      })
+
+      await ch.image(img).goAutoReply();
+    });
 
     api.expose({
       hasPermission,

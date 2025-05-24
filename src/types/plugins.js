@@ -7,6 +7,23 @@
  */
 
 /**
+ * @typedef {Object} PluginDefine
+ * @property {PluginInfo} instance - 插件实例
+ * @property {boolean} loaded - 插件是否已加载
+ * @property {string} hash - 插件文件的 MD5 哈希值
+ * @property {boolean} error - 插件加载是否出错
+ * @property {PluginInterface | undefined} api - 插件暴露的接口
+ * @property {LoadLevel} level - 加载等级
+ * @property {boolean} rejected - 插件是否拒绝加载
+ * @property {{
+*     fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
+*     config: CommandConfig,
+*     trigger: string[]
+* }[]} commands - 插件注册的命令
+* @property {{time: string, fn: (ch: ContextHelper) => (boolean | Promise<boolean>)}[]} superCommands - 插件注册的超级命令
+*/
+
+/**
  * @typedef {function(string | string[], string): (function(function): function)} CommandDecorator
  */
 
@@ -15,8 +32,6 @@
  * @property {string?} description - 命令描述
  * @property {boolean?} quickCommandRegisterIgnore - 是否忽略快速命令注册
  */
-
-
 
 /**
  * @typedef {Object} ContextHelper - 上下文小帮手

@@ -17,18 +17,14 @@ export default {
     },
     setup(api) {
 
-        if (!renderConfig.browser_path) {
-            api.reject("缺少浏览器路径");
-            return;
-        }
-
         async function renderHtml(config) {
             /**
              * @type {string}
-            */
+             */
             let html = config.html;
             if (!html) {
                 if (config.url) {
+                    api.log(`正在获取 ${config.url} 的内容`);
                     html = (await axios.get(config.url)).data;
                 } else {
                     throw new Error("缺少 html 或 url 参数");
@@ -36,18 +32,25 @@ export default {
             }
 
             const browser = await puppeteer.launch({
-                executablePath: renderConfig.browser_path
+                executablePath: renderConfig.browser_path ?? undefined,
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             const page = await browser.newPage();
             await page.setContent(html);
-            const buffer = await page.screenshot({ type: "png" });
+            const bodyheight = await page.evaluate(() => document.body.scrollHeight);
+            await page.setViewport({ width: 800, height: bodyheight });
+            if (config.delay) {
+                await new Promise(resolve => setTimeout(resolve, config.delay));
+            }
+            const buffer = await page.screenshot({ type: "png", omitBackground: true });
             await browser.close();
             return buffer;
         }
 
         api.cmd(["网页图片渲染测试"], async (ch) => {
             ch.image(await renderHtml({ html: "<h1>Hello World</h1>" }));
-            ch.go();
+            await ch.go();
         });
 
         api.expose({ renderHtml });

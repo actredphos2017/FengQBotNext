@@ -2,7 +2,8 @@ const faceMap = {
     ww: 277,
     nzqk: 307,
     youl: 187,
-    wx: 14
+    wx: 14,
+    dk: 9
 }
 
 const defaultFaceId = 14;

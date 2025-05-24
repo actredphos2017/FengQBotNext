@@ -78,26 +78,22 @@ function removeJob(pluginId, job) {
 }
 
 /**
- * @typedef {Object} PluginDefine
- * @property {import("../types/plugins").PluginInfo} instance - 插件实例
- * @property {boolean} loaded - 插件是否已加载
- * @property {string} hash - 插件文件的 MD5 哈希值
- * @property {boolean} error - 插件加载是否出错
- * @property {import("../types/plugins").PluginInterface | undefined} api - 插件暴露的接口
- * @property {import("../types/plugins").LoadLevel} level - 加载等级
- * @property {boolean} rejected - 插件是否拒绝加载
- * @property {{
- *     fn: (ch: import("../types/plugins").ContextHelper, ...args: string[]) => void | Promise<void>,
- *     config: import("../types/plugins").CommandConfig,
- *     trigger: string[]
- * }[]} commands - 插件注册的命令
- * @property {{time: string, fn: (ch: ContextHelper) => (boolean | Promise<boolean>)}[]} superCommands - 插件注册的超级命令
- */
-
-/**
- * @type {{ [key: string]: PluginDefine }}
+ * @type {{ [key: string]: import("../types/plugins.js").PluginDefine }}
  */
 const plugins = {};
+
+const emptyCommandForHelp = [];
+
+
+/**
+ * @type {{
+ *     pluginId: string,
+ *     fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
+ *     config: import("../types/plugins").CommandConfig,
+ *     trigger: string[]
+ * }[]}
+ */
+let commandsForHelp = emptyCommandForHelp;
 
 const emptyQuickCommand = {};
 
@@ -180,11 +176,12 @@ async function loadPlugins(hard = false) {
     }
 
     /**
-     * @type {PluginDefine[]}
+     * @type {import("../types/plugins.js").PluginDefine[]}
      */
     const pluginList = Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; }).toSorted((a, b) => b.level - a.level);
 
     superCommands = emptySuperCommand;
+    commandsForHelp = emptyCommandForHelp;
     quickCommands = emptyQuickCommand;
 
     for (const plugin of pluginList) {
@@ -217,17 +214,26 @@ async function loadPlugins(hard = false) {
                 if (command.config.quickCommandRegisterIgnore === true) {
                     continue;
                 }
+                const helpTriggers = [];
                 for (const trigger of command.trigger) {
                     if (quickCommands[trigger] && quickCommands[trigger].pluginId !== plugin.instance.config.id) {
                         logger.error(`为插件 ${plugin.instance.config.id} 注册快捷命令 ${trigger} 时出错：同名命令已被插件 ${quickCommands[trigger].pluginId} 注册`);
                         continue;
                     }
-                    const isCovered = quickCommands[trigger];
                     quickCommands[trigger] = {
                         pluginId: plugin.instance.config.id,
                         command: command
                     };
-                    logger.log(`已为插件 ${plugin.instance.config.id} ` + (isCovered ? "重新" : "") + `注册快捷命令 ${trigger}`);
+                    helpTriggers.push(trigger);
+                    logger.log(`已为插件 ${plugin.instance.config.id} 注册快捷命令 ${trigger}`);
+                }
+                if (helpTriggers.length > 0) {
+                    commandsForHelp.push({
+                        pluginId: plugin.instance.config.id,
+                        trigger: helpTriggers,
+                        config: command.config,
+                        fn: command.fn
+                    });
                 }
             }
         }
@@ -263,6 +269,11 @@ async function loadPlugin(pluginDefine) {
         createBot: botHelper,
         outside: new Proxy({}, {
             get: (_, prop) => {
+                if (prop === "__plugins") {
+                    return plugins;
+                } else if (prop === "__commands") {
+                    return commandsForHelp;
+                }
                 const plugin = plugins[prop];
                 if (plugin) {
                     return plugin.api;
@@ -347,9 +358,11 @@ async function loadPlugin(pluginDefine) {
         },
         schedule: {
             create: (cron, fn) => {
+                logger.log(`已为插件 ${pluginId} 注册了定时任务，执行时间 ${cron}`);
                 return createJob(pluginId, cron, fn);
             },
             remove: (job) => {
+                logger.log(`已为插件 ${pluginId} 移除了定时任务`);
                 removeJob(pluginId, job);
             }
         }
@@ -451,9 +464,11 @@ function contextHelper(ctx) {
                         } else if (image instanceof Uint8Array) {
                             image = Buffer.from(image).toString('base64');
                         }
-                    } else {
-                        logger.error('不支持的图片类型');
-                        continue;
+
+                        if (typeof image !== "string") {
+                            logger.error('不支持的图片类型');
+                            continue;
+                        }
                     }
 
                     if (!image.startsWith("base64://"))
@@ -619,12 +634,12 @@ function botHelper() {
             logger.log("发送消息：", prepareLog);
             if (virtualContext.isGroup) {
                 await qqBot.send_group_msg({
-                    group_id: virtualContext.id,
+                    group_id: Number(virtualContext.id),
                     message
                 });
             } else {
                 await qqBot.send_private_msg({
-                    user_id: virtualContext.id,
+                    user_id: Number(virtualContext.id),
                     message
                 });
             }
