@@ -7,8 +7,14 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function loadConfig(file) {
     const configPath = path.join(__dirname, `../config/${file}.yml`);  // 保持源码与编译后一致
-    return yaml.load(fs.readFileSync(configPath, 'utf8'));
+    try {
+        return yaml.load(fs.readFileSync(configPath, 'utf8'));
+    } catch (error) {
+        console.error(`Error loading config file ${file}:`, error);
+        return {};
+    }
 }
+
 export function saveConfig(file, data) {
     const configPath = path.join(__dirname, `../config/${file}.yml`);  // 保持源码与编译后一致
     fs.writeFileSync(configPath, yaml.dump(data));
