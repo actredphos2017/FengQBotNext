@@ -1,26 +1,37 @@
-import sqlite3Prototype from 'sqlite3';
-const sqlite3 = sqlite3Prototype.verbose();
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { DatabaseSync } from 'node:sqlite';
+import fs from 'fs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+/**
+ * @type {DatabaseSync}
+ */
 let db = undefined;
 
 export function initStore() {
     const storeDbPath = path.join(__dirname, '..', 'store.db');
-    if (existsSync(storeDbPath)) {
-        db = new sqlite3.Database(storeDbPath);
-    } else {
-        logger.log('数据库 ../store.db 不存在，正在创建...');
-        db = new sqlite3.Database(storeDbPath, (err) => {
-            if (err) {
-                logger.error('中间件初始化失败：创建数据库文件 ../store.db 时出错 ', err);
-            }
-        });
-        db.serialize(databaseInit);
+    try {
+        let flag = false;
+        if (!fs.existsSync(storeDbPath)) {
+            flag = true;
+        }
+        db = new DatabaseSync(storeDbPath);
+        if (flag) {
+            databaseInit();
+        }
+    } catch (err) {
+        console.error(err);
     }
 }
 
 function databaseInit() {
-    db.run(`DROP TABLE IF EXISTS plugin_store`);
-    db.run(`CREATE TABLE plugin_store (plugin_id VARCHAR(64) PRIMARY KEY, data TEXT default "")`);
+    try {
+        db.exec(`DROP TABLE IF EXISTS plugin_store`);
+        db.exec(`CREATE TABLE plugin_store (plugin_id VARCHAR(64) PRIMARY KEY, data TEXT default "")`);
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 /**
@@ -28,17 +39,17 @@ function databaseInit() {
  * @returns {Promise<string | undefined>}
  */
 export function getPluginStore(pluginId) {
-    return new Promise((resolve, reject) => {
-        db.get(`SELECT data FROM plugin_store WHERE plugin_id = ?`, [pluginId], (err, row) => {
-            if (err) {
-                reject(err);
-            } else if (row) {
-                resolve(row.data);
-            } else {
-                resolve(undefined);
-            }
-        })
-    })
+    try {
+        const statement = db.prepare(`SELECT data FROM plugin_store WHERE plugin_id = ?`);
+        const row = statement.get(pluginId);
+        if (row) {
+            return row.data;
+        } else {
+            return undefined;
+        }
+    } catch (err) {
+        throw err;
+    }
 }
 
 /**
@@ -47,13 +58,10 @@ export function getPluginStore(pluginId) {
  * @returns {Promise<void>}
  */
 export function setPluginStore(pluginId, data) {
-    return new Promise((resolve, reject) => {
-        db.run(`INSERT OR REPLACE INTO plugin_store (plugin_id, data) VALUES (?, ?)`, [pluginId, data], (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        })
-    })
+    try {
+        const statement = db.prepare(`INSERT OR REPLACE INTO plugin_store (plugin_id, data) VALUES (?, ?)`);
+        statement.run(pluginId, data);
+    } catch (err) {
+        throw err;
+    }
 }
