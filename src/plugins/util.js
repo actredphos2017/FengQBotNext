@@ -185,7 +185,7 @@ const plugin = {
 
     }, { time: "beforeActivate" });
 
-    api.cmd(["帮助", "?", "？"], async (ch) => {
+    api.cmd(["帮助", "?", "？"], async (ch, pluginId) => {
       /**
        * @type {{[pluginId: string]: import("../types/plugins").PluginDefine}}
        */
@@ -208,7 +208,11 @@ const plugin = {
       *     trigger: string[]
       * }[]}
       */
-      const commands = api.outside.__commands;
+      let commands = api.outside.__commands;
+
+      if (pluginId) {
+        commands = commands.filter(e => e.pluginId === pluginId);
+      }
 
       const img = await api.outside.render.renderHtml({
         html: generateDOMCode(commands.map(e => ({
