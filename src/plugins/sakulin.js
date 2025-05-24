@@ -260,7 +260,8 @@ export default {
         api.cmd(["强制说话"], aiResponse);
 
         api.cmd(["ai激活"], async (ch, group = undefined) => {
-            const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
+            api.outside.util.hasPermission(ch)
+            const hasPermission = await api.outside.util.hasPermission(ch);
             if (!hasPermission) {
                 await ch.text("你没有权限执行此命令！").goAutoReply();
                 return;
@@ -285,7 +286,7 @@ export default {
         });
 
         api.cmd(["ai禁用"], async (ch, group = undefined) => {
-            const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
+            const hasPermission = await api.outside.util.hasPermission(ch);
             if (!hasPermission) {
                 await ch.text("你没有权限执行此命令！").goAutoReply();
                 return;
@@ -310,7 +311,7 @@ export default {
         });
 
         api.cmd(["删除历史记录"], async (ch, groupId = undefined) => {
-            const hasPermission = api.withPlugin("util", async (util) => await util.hasPermission(ch));
+            const hasPermission = await api.outside.util.hasPermission(ch);
             if (!hasPermission) {
                 await ch.text("你没有权限执行此命令！").goAutoReply();
                 return;

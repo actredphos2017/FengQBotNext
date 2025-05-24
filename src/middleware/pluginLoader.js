@@ -242,6 +242,9 @@ async function loadPlugin(pluginDefine) {
 
     const pluginId = pluginDefine.instance.config.id;
 
+    /**
+     * @type {import("../types/plugins.js").PluginAPI}
+     */
     const pluginAPI = {
         listen: (event, listener) => {
             logger.log(`插件 ${pluginId} 注册了事件监听器: ${event}`);
@@ -258,28 +261,17 @@ async function loadPlugin(pluginDefine) {
             pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
         },
         createBot: botHelper,
-        withPlugin: (pluginId, func) => {
-            const plugin = plugins[pluginId];
-            let api;
-            if (plugin) {
-                api = plugin.api;
-            } else {
-                logger.error(`插件 ${pluginId} 试图寻找 ${pluginId} 但未找到`);
-                api = undefined;
-            }
-            return new Promise(async (resolve, reject) => {
-                if (api) {
-                    const a = func(api);
-                    if (a instanceof Promise) {
-                        a.then(resolve).catch(reject);
-                    } else {
-                        resolve(a);
-                    }
+        outside: new Proxy({}, {
+            get: (_, prop) => {
+                const plugin = plugins[prop];
+                if (plugin) {
+                    return plugin.api;
                 } else {
-                    reject(`插件 ${pluginId} 未找到`);
+                    logger.error(`插件 ${pluginId} 试图寻找 ${prop} 但未找到`);
+                    return undefined;
                 }
-            });
-        },
+            }
+        }),
         cmd: (trigger, fn, config = {}) => {
             trigger = Array.isArray(trigger) ? trigger : [trigger];
             logger.log(`插件 ${pluginId} 注册了命令: `, ...trigger);

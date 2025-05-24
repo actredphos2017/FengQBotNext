@@ -334,7 +334,7 @@ export default {
 }
 ```
 
-通过 `api.withPlugin` 方法可以访问其他插件的组件成员。
+通过 `api.outside` 委托对象可以访问其他插件的组件成员。
 
 ```js
 //PLUGINX
@@ -343,19 +343,15 @@ export default {
     config: { /* ... */ },
     setup(api) {
         async function myCmd(ch) {
-            const hasPermission = await api.withPlugin("util", async (util) => {
-                return await util.hasPermission(ch.userId);
-            });
+            const hasPermission = await api.outside.util.hasPermission(ch.userId);
 
             /* ... */
         }
 
         // [警告]请不要像下面这样做！
-        let util;
-        await api.withPlugin("util", async (u) => {
-            util = u;
-        });
+        const util = api.outside.util;
         // 为什么：如 util 插件更新，你手上的 util 对象可能指向已经被删除的对象。
+        // 访问 outside 的成员时，请即拿即用，不要保存引用。
     }
 }
 ```
