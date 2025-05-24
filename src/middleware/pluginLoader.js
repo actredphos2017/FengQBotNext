@@ -7,54 +7,10 @@ import pipe from "../core/pipe.js";
 import { getLoadLevel } from "../types/plugins.js";
 import { logger } from "../core/logger.js";
 import { getFace } from "../lib/faces.js";
-import sqlite3Prototype from 'sqlite3';
 import schedule from 'node-schedule';
+import { initStore, getPluginStore, setPluginStore } from "../lib/store.js";
 
 let qqBot = undefined;
-
-const sqlite3 = sqlite3Prototype.verbose();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-let db = undefined;
-
-function databaseInit() {
-    db.run(`DROP TABLE IF EXISTS plugin_store`);
-    db.run(`CREATE TABLE plugin_store (plugin_id VARCHAR(64) PRIMARY KEY, data TEXT default "")`);
-}
-
-/**
- * @param {string} pluginId
- * @returns {Promise<string | undefined>}
- */
-function getPluginStore(pluginId) {
-    return new Promise((resolve, reject) => {
-        db.get(`SELECT data FROM plugin_store WHERE plugin_id = ?`, [pluginId], (err, row) => {
-            if (err) {
-                reject(err);
-            } else if (row) {
-                resolve(row.data);
-            } else {
-                resolve(undefined);
-            }
-        })
-    })
-}
-
-/**
- * @param {string} pluginId
- * @param {string} data
- * @returns {Promise<void>}
- */
-function setPluginStore(pluginId, data) {
-    return new Promise((resolve, reject) => {
-        db.run(`INSERT OR REPLACE INTO plugin_store (plugin_id, data) VALUES (?, ?)`, [pluginId, data], (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        })
-    })
-}
 
 /**
  * @type {{ [key: string]: schedule.Job[] }}
@@ -486,6 +442,9 @@ function contextHelper(ctx) {
         },
         async go() {
             const message = [];
+            if (requestBuffer.length === 0) {
+                return;
+            }
             for (const item of requestBuffer) {
                 if (item.type === "text") {
                     message.push({type: "text", data: {text: String(item.data.text)}});
@@ -497,6 +456,8 @@ function contextHelper(ctx) {
                             image = Buffer.from(await image.arrayBuffer()).toString("base64");
                         } else if (image instanceof Buffer) {
                             image = image.toString('base64');
+                        } else if (image instanceof Uint8Array) {
+                            image = Buffer.from(image).toString('base64');
                         }
                     } else {
                         logger.error('不支持的图片类型');
@@ -539,6 +500,9 @@ function contextHelper(ctx) {
             requestBuffer = [];
         },
         async goAutoReply() {
+            if (requestBuffer.length === 0) {
+                return;
+            }
             if (this.isGroup) {
                 requestBuffer = [{ type: "reply", data: { id: ctx.message_id } }, ...requestBuffer];
             }
@@ -616,6 +580,9 @@ function botHelper() {
             return this;
         },
         async go() {
+            if (requestBuffer.length === 0) {
+                return;
+            }
             const message = [];
             for (const item of requestBuffer) {
                 if (item.type === "text") {
@@ -628,6 +595,8 @@ function botHelper() {
                             image = Buffer.from(await image.arrayBuffer()).toString("base64");
                         } else if (image instanceof Buffer) {
                             image = image.toString('base64');
+                        } else if (image instanceof Uint8Array) {
+                            image = Buffer.from(image).toString('base64');
                         }
                     } else {
                         logger.error('不支持的图片类型');
@@ -685,18 +654,7 @@ function botHelper() {
 
 export function pluginLoader(config = {}) {
 
-    const storeDbPath = path.join(__dirname, '..', 'store.db');
-    if (existsSync(storeDbPath)) {
-        db = new sqlite3.Database(storeDbPath);
-    } else {
-        logger.log('数据库 ../store.db 不存在，正在创建...');
-        db = new sqlite3.Database(storeDbPath, (err) => {
-            if (err) {
-                logger.error('中间件初始化失败：创建数据库文件 ../store.db 时出错 ', err);
-            }
-        });
-        db.serialize(databaseInit);
-    }
+    initStore();
 
     config = {
         activate: config.activate ?? ((context) => {
