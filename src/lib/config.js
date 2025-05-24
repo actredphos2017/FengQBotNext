@@ -15,3 +15,4 @@ export function saveConfig(file, data) {
 }
 export const Botconfig = await loadConfig('bot');
 export const ApiKey = await loadConfig('api_key');
+export const RenderConfig = await loadConfig('render');
