@@ -26,11 +26,14 @@ export default {
      * @param {any} data - 传递给监听器的参数。
      */
     emit: async function (event, data) {
-        for (const trigger of this.eventTriggers.filter((trigger) => {
-            return trigger.event === event;
-        })) {
+        for (const trigger of this.eventTriggers.filter((trigger) => (trigger.event === event))) {
             try {
-                await trigger.handler(data);
+                const res = trigger.handler(data);
+                if (res instanceof Promise) {
+                    await res.catch((error) => {
+                        console.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
+                    });
+                }
             } catch (error) {
                 console.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
             }
