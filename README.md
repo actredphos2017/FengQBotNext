@@ -1,3 +1,5 @@
+> 特别鸣谢： [初代枫林 QQ 机器人](https://github.com/liuqianpan2008/FengbotQQ)
+
 # 插件文档
 
 最简单的插件示范：
@@ -49,7 +51,7 @@ export default {
     config: { /* ... */ },
     setup(api) {
 
-        async function testCmd(ch, ...args) {
+        async function testCmd(ch, arg1, arg2 /*...*/) { // 第一个参数是 ContextHelper，后面的参数是命令参数
             // 这里是你的命令代码
         }
 
