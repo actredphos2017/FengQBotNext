@@ -5,8 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --inspect ./src/index.js",
-    "run": "node ./src/index.js"
+    "dev": "node --experimental-sqlite --inspect ./src/index.js",
+    "run": "node --experimental-sqlite ./src/index.js"
   },
   "keywords": [],
   "author": "",
