@@ -126,29 +126,22 @@ export default {
             return;
         }
 
-        async function getIntefaces(ch) {
+        async function getIntefaces() {
             const interfaces = [];
             /**
              * @type {{ [key: string]: import("../types/plugins.js").PluginDefine }}
              */
             const plugins = api.outside.__plugins;
-            const enabledPlugins = (await api.store.get("aiPluginInterfaces", {}))[String(ch.groupId)];
-            if (!enabledPlugins) return [];
-            enabledPlugins.forEach((pluginId) => {
-                const targetPlugin = plugins[pluginId];
-                if (!targetPlugin) {
-                    api.log.warn(`插件 ${pluginId} 不存在`);
-                } else {
-                    targetPlugin.commands.forEach((cmd) => {
-                        if (cmd.config.aiExpose) {
-                            interfaces.push({
-                                cmd: cmd.trigger[0],
-                                description: cmd.config.description
-                            });
-                        }
-                    });
-                }
-            });
+            for (const plugin of Object.values(plugins)) {
+                plugin.commands.forEach((cmd) => {
+                    if (cmd.config.aiExpose) {
+                        interfaces.push({
+                            cmd: cmd.trigger[0],
+                            description: cmd.config.description
+                        });
+                    }
+                });
+            }
             return interfaces;
         }
 
@@ -218,7 +211,7 @@ export default {
                         content: e.content.replaceAll(aiConfig.selfQQ, "你")
                     })), {
                         role: "assistant",
-                        content: cueWord(true, await getIntefaces(ch))
+                        content: cueWord(true, await getIntefaces())
                     }]
                 });
                 api.log(`[AI智能回复] 我的回应是 ${responseObjectJson}`);
@@ -270,7 +263,7 @@ export default {
                         content: e.content.replaceAll(aiConfig.selfQQ, "你")
                     })), {
                         role: "assistant",
-                        content: cueWord(false, await getIntefaces(ch))
+                        content: cueWord(false, await getIntefaces())
                     }]
                 })).trim();
 
@@ -446,64 +439,6 @@ export default {
             if (ch.isGroup) await pushMessage(ch.userId, ch.groupId, ch.getPureMessage(false));
             return true;
         }, { time: "beforeActivate" });
-
-        api.cmd(["ai提供插件接口"], async (ch, pluginId, groupId) => {
-            if (!(await api.outside.util.hasPermission(ch))) {
-                await ch.text("你没有权限执行此命令！").goAutoReply();
-                return;
-            }
-            if (!pluginId) {
-                await ch.text("请指定一个插件 ID！").goAutoReply();
-                return;
-            }
-            if (!groupId) {
-                if (ch.isGroup) {
-                    groupId = String(ch.groupId);
-                } else {
-                    await ch.text("请指定一个群聊！").goAutoReply();
-                    return;
-                }
-            }
-            const aiPluginInterfaces = await api.store.get("aiPluginInterfaces", {});
-            const target = aiPluginInterfaces[groupId] ?? [];
-            if (target.includes(pluginId)) {
-                await ch.text("该插件已经向 AI 暴露了接口！").goAutoReply();
-                return;
-            }
-            target.push(pluginId);
-            aiPluginInterfaces[groupId] = target;
-            await api.store.set("aiPluginInterfaces", aiPluginInterfaces);
-            await ch.text(`现在 AI 可以访问插件 ${pluginId} 的接口！`).goAutoReply();
-        });
-
-        api.cmd(["ai移除插件接口"], async (ch, pluginId, groupId) => {
-            if (!(await api.outside.util.hasPermission(ch))) {
-                await ch.text("你没有权限执行此命令！").goAutoReply();
-                return;
-            }
-            if (!pluginId) {
-                await ch.text("请指定一个插件 ID！").goAutoReply();
-                return;
-            }
-            if (!groupId) {
-                if (ch.isGroup) {
-                    groupId = String(ch.groupId);
-                } else {
-                    await ch.text("请指定一个群聊！").goAutoReply();
-                    return;
-                }
-            }
-            const aiPluginInterfaces = await api.store.get("aiPluginInterfaces", {});
-            const target = aiPluginInterfaces[groupId] ?? [];
-            if (!target.includes(pluginId)) {
-                await ch.text("AI 没有获得该插件的接口！").goAutoReply();
-                return;
-            }
-            target.splice(target.indexOf(pluginId), 1);
-            aiPluginInterfaces[groupId] = target;
-            await api.store.set("aiPluginInterfaces", aiPluginInterfaces);
-            await ch.text(`已停止向 AI 提供插件 ${pluginId} 的接口！`).goAutoReply();
-        });
 
         api.super(aiAutoResponse, { time: "onActivateFailed" });
 
