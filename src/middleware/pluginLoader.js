@@ -1,7 +1,7 @@
 import {defineMiddleware} from "../core/middleware.js";
 import path from "path";
 import crypto from 'crypto';
-import {promises as fsPromises, existsSync} from 'fs';
+import {promises as fsPromises} from 'fs';
 import {fileURLToPath} from "node:url";
 import pipe from "../core/pipe.js";
 import { getLoadLevel } from "../types/plugins.js";
@@ -82,7 +82,7 @@ function removeJob(pluginId, job) {
  */
 const plugins = {};
 
-const emptyCommandForHelp = [];
+const emptyCommandForHelp = () => [];
 
 
 /**
@@ -93,42 +93,44 @@ const emptyCommandForHelp = [];
  *     trigger: string[]
  * }[]}
  */
-let commandsForHelp = emptyCommandForHelp;
+let commandsForHelp = emptyCommandForHelp();
 
-const emptyQuickCommand = {};
+const emptyQuickCommand = () => ({});
 
 /**
  * @type {{ [key: string]: {
  *     pluginId: string,
  *     command: {
- *         fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
+ *         fn: (ch: import("../types/plugins.js").ContextHelper, ...args: string[]) => void | Promise<void>,
  *         config: import("../types/plugins").CommandConfig,
  *         trigger: string[]
  *     }
  * } }}
  */
-let quickCommands = emptyQuickCommand;
+let quickCommands = emptyQuickCommand();
 
 /**
- * @typedef {(ch: ContextHelper) => (boolean | Promise<boolean>)} SuperCommandFn
+ * @typedef {(ch: import("../types/plugins.js").ContextHelper | import("../types/plugins.js").BotHelper, arg: any?) => (boolean | Promise<boolean>)} SuperCommandFn
  */
 
-const emptySuperCommand = {
-    beforeActivate: [],
-    afterActivate: [],
-    onActivateFailed: [],
-    onFinally: []
-};
+const emptySuperCommand = () => ({
+    beforeActivate: {},
+    afterActivate: {},
+    onActivateFailed: {},
+    onFinally: {},
+    onGo: {}
+});
 
 /**
  * @type {{
- *     beforeActivate: { [pluginId: string]: SuperCommandFn }[]
- *     afterActivate: { [pluginId: string]: SuperCommandFn }[]
- *     onActivateFailed: { [pluginId: string]: SuperCommandFn }[]
- *     onFinally: { [pluginId: string]: SuperCommandFn }[]
+ *     beforeActivate: { [pluginId: string]: SuperCommandFn }
+ *     afterActivate: { [pluginId: string]: SuperCommandFn }
+ *     onActivateFailed: { [pluginId: string]: SuperCommandFn }
+ *     onFinally: { [pluginId: string]: SuperCommandFn }
+ *     onGo: { [pluginId: string]: SuperCommandFn }
  * }}
  */
-let superCommands = emptySuperCommand;
+let superCommands = emptySuperCommand();
 
 async function loadPlugins(hard = false) {
     try {
@@ -180,9 +182,9 @@ async function loadPlugins(hard = false) {
      */
     const pluginList = Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; }).toSorted((a, b) => b.level - a.level);
 
-    superCommands = emptySuperCommand;
-    commandsForHelp = emptyCommandForHelp;
-    quickCommands = emptyQuickCommand;
+    superCommands = emptySuperCommand();
+    commandsForHelp = emptyCommandForHelp();
+    quickCommands = emptyQuickCommand();
 
     for (const plugin of pluginList) {
         if (!plugin.loaded) {
@@ -241,7 +243,7 @@ async function loadPlugins(hard = false) {
 }
 
 /**
- * @param {PluginDefine} pluginDefine
+ * @param {import("../types/plugins.js").PluginDefine} pluginDefine
  * @returns {Promise<PluginDefine>}
  */
 async function loadPlugin(pluginDefine) {
@@ -266,7 +268,15 @@ async function loadPlugin(pluginDefine) {
         expose: (api) => {
             pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
         },
-        createBot: botHelper,
+        createBot: () => {
+            const bh = botHelper(async (message) => {
+                // 超级命令
+                for (const fn of Object.values(superCommands.onGo)) {
+                    await fn(bh, message);
+                }
+            });
+            return bh;
+        },
         outside: new Proxy({}, {
             get: (_, prop) => {
                 if (prop === "__plugins") {
@@ -299,7 +309,7 @@ async function loadPlugin(pluginDefine) {
                 return;
             }
             logger.log(`插件 ${pluginId} 在 ${time} 时机注册了超级命令`);
-            pluginDefine.superCommands.push({time, fn});
+            pluginDefine.superCommands.push({time, fn}); // TODO WHY?
         },
         assert: (pluginId) => {
             const plugin = plugins[pluginId];
@@ -403,9 +413,10 @@ async function loadPlugin(pluginDefine) {
 
 /**
  * @param {Context} ctx - 上下文对象，包含消息相关信息和操作方法。
+ * @param {((message: any[]) => Promise<void>)?} onGoSuperFn - 上下文对象，包含消息相关信息和操作方法。
  * @returns {import("../types/plugins.js").ContextHelper}
  */
-function contextHelper(ctx) {
+function contextHelper(ctx, onGoSuperFn = undefined) {
 
     let requestBuffer = [];
 
@@ -509,6 +520,9 @@ function contextHelper(ctx) {
                 });
             }
             requestBuffer = [];
+            if (onGoSuperFn) {
+                await onGoSuperFn(message);
+            }
         },
         async goAutoReply() {
             if (requestBuffer.length === 0) {
@@ -553,9 +567,10 @@ function contextHelper(ctx) {
 }
 
 /**
+ * @param {((message: any[]) => Promise<void>)?} onGoSuperFn - 上下文对象，包含消息相关信息和操作方法。
  * @returns {import("../types/plugins.js").BotHelper}
  */
-function botHelper() {
+function botHelper(onGoSuperFn = undefined) {
     let requestBuffer = [];
     let virtualContext = undefined;
 
@@ -657,6 +672,9 @@ function botHelper() {
                 });
             }
             requestBuffer = [];
+            if (onGoSuperFn) {
+                await onGoSuperFn(message);
+            }
         }
     }
 
@@ -754,7 +772,13 @@ async function runCommand(context, parts = undefined, enableSuperCommand = false
     }
 
     try {
-        await command.fn(contextHelper(context), ...args);
+        const scf = enableSuperCommand ? (async (message) => {
+            // 超级命令
+            for (const fn of Object.values(superCommands.onGo)) {
+                await fn(contextHelper(context, scf), message);
+            }
+        }) : undefined;
+        await command.fn(contextHelper(context, scf), ...args);
     } catch (e) {
         logger.error(`命令 ${cmdName} 执行出错：`, e);
     }

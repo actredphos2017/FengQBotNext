@@ -42,6 +42,7 @@ export default {
         version: "1.0.0"
     },
     setup(api) {
+
         api.cmd(["看看图"], async (ch, param = undefined) => {
             try {
                 await ch.image(await getImage(param)).go();

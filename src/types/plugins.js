@@ -20,7 +20,7 @@
 *     config: CommandConfig,
 *     trigger: string[]
 * }[]} commands - 插件注册的命令
-* @property {{time: string, fn: (ch: ContextHelper) => (boolean | Promise<boolean>)}[]} superCommands - 插件注册的超级命令
+* @property {{time: string, fn: (ch: ContextHelper | BotHelper) => (boolean | Promise<boolean>)}[]} superCommands - 插件注册的超级命令
 */
 
 /**
@@ -75,7 +75,7 @@
 /**
  * @typedef {Object} SuperCommandConfig
  * @property {string?} description - 超级命令描述
- * @property {("beforeActivate" | "afterActivate" | "onActivateFailed" | "onFinally")?} time - 执行时机
+ * @property {("beforeActivate" | "afterActivate" | "onActivateFailed" | "onFinally" | "onGo")?} time - 执行时机
  */
 
 /**
@@ -107,7 +107,7 @@
  * @property {{[pluginId: string]: PluginInterface}} outside - 外部插件接口
  *
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
- * @property {(trigger: (ch: ContextHelper) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
+ * @property {(trigger: (ch: ContextHelper, arg: any?) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
  *
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
