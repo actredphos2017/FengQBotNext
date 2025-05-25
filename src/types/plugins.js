@@ -30,6 +30,7 @@
 /**
  * @typedef {Object} CommandConfig
  * @property {string?} description - 命令描述
+ * @property {boolean?} aiExpose - 由 sakulin 插件定义的 AI 暴露字段，用于 AI 插件调用
  * @property {boolean?} quickCommandRegisterIgnore - 是否忽略快速命令注册
  */
 

@@ -49,7 +49,8 @@ export default {
                 await ch.text("哎呀，图片获取失败了呢...").face("dk").go();
             }
         }, {
-            description: "看看图，可添加不同图源作为参数，例如发送 “@机器人 看看图 原神” ，可选的图源有：" + Object.keys(imgSourceMap).map(e => ((e == defaultSource) ? (e + "（默认）") : e)).join("、")
+            description: "看看图，可添加不同图源作为参数，调用方式：“看看图 [可选：关键字]”，例如发送 “看看图 原神”",
+            aiExpose: true
         });
 
         api.cmd(["激活每日一图"], async (ch, groupId) => {
