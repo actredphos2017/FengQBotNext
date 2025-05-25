@@ -54,6 +54,7 @@
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
  * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
  * @property {(onlyText: boolean = true) => string | undefined} getPureMessage - 当获得的消息为纯文本时，返回文本对象。onlyText 为 true 时，当消息包含艾特、图片、表情、文件等信息时，会返回 undefined
+ * @property {(parts: string | string[]) => Promise<void>} redirect - 重定向到新的命令（重定向不会激活新命令生命周期的超级命令）
  * @property {boolean} isGroup - 是否为群组消息
  * @property {Context} context - 原始上下文对象
  * @property {NCWebsocket} napcat - 原始 NCWebsocket 对象

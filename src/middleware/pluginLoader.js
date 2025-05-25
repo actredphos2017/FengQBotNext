@@ -519,6 +519,15 @@ function contextHelper(ctx) {
             }
             return await this.go();
         },
+        async redirect(parts) {
+            if (typeof parts === "string") {
+                parts = parts.split(/\s+/);
+            }
+            if (!Array.isArray(parts)) {
+                return;
+            }
+            await runCommand(ctx, parts, false);
+        },
         isGroup: ctx.message_type === "group",
         context: ctx,
         napcat: qqBot,
@@ -653,32 +662,10 @@ function botHelper() {
 
 }
 
-/**
- * @typedef {Object} PluginLoaderConfig
- * @property {((context: Context) => (string[] | undefined))?} activate
- */
+let config = {};
 
-/**
- * @param {PluginLoaderConfig} config
- * @returns {any}
- */
-
-export function pluginLoader(config = {}) {
-
-    initStore();
-
-    config = {
-        activate: config.activate ?? ((context) => {
-            if (context.message[0].type !== 'text')
-                return undefined;
-            return context.message[0].data.text.trim().split(/\s+/);
-        })
-    }
-
-    const mainHander = async ({ context }) => {
-
-        logger.log("收到消息：", JSON.stringify(context.message));
-
+async function runCommand(context, parts = undefined, enableSuperCommand = false) {
+    if (enableSuperCommand) {
         // 超级命令
         for (const [pluginId, fn] of Object.entries(superCommands.beforeActivate)) {
             const res = await fn(contextHelper(context));
@@ -687,57 +674,61 @@ export function pluginLoader(config = {}) {
                 return;
             }
         }
+    }
 
-        if (context.message.length < 1) {
-            return;
-        }
+    if (context.message.length < 1) {
+        return;
+    }
 
-        const parts = config.activate(context);
-        if (!parts) {
-            // 超级命令
-            for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
-                const res = await fn(contextHelper(context));
-                if (res === false) {
-                    logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
-                    return;
-                }
-            }
-            return;
-        }
-
-        logger.log("消息已命中，关键字：", parts.join(", "));
-
-        let command, cmdName;
-        let args = [];
-
-        if (parts[0].startsWith("$")) {
-            // 具名模式
-            logger.log(`正在使用具名模式搜索`);
-            const pluginId = parts[0].slice(1);
-            cmdName = parts[1];
-            const plugin = plugins[pluginId];
-            if (!plugin) {
-                logger.log(`插件 ${pluginId} 未找到`);
+    if (!parts) {
+        parts = config.activate(context);
+    }
+    if (!parts && enableSuperCommand) {
+        // 超级命令
+        for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
+            const res = await fn(contextHelper(context));
+            if (res === false) {
+                logger.log(`插件 ${pluginId} 的超级命令在 onActivateFailed 时机阻止了命令默认执行`);
                 return;
             }
-            logger.log(`插件 ${pluginId} 已找到`);
-            command = plugin.commands.find((command) => {
-                return command.trigger.includes(cmdName);
-            });
-            args = parts.slice(2);
-        } else {
-            // 快捷模式
-            logger.log(`正在使用快捷模式搜索`);
-            cmdName = parts[0];
-            const quickCmd = quickCommands[cmdName];
-            if (quickCmd) {
-                command = quickCmd.command;
-            }
-            args = parts.slice(1);
         }
+        return;
+    }
+
+    logger.log("消息已命中，关键字：", parts.join(", "));
+
+    let command, cmdName;
+    let args = [];
+
+    if (parts[0].startsWith("$")) {
+        // 具名模式
+        logger.log(`正在使用具名模式搜索`);
+        const pluginId = parts[0].slice(1);
+        cmdName = parts[1];
+        const plugin = plugins[pluginId];
+        if (!plugin) {
+            logger.log(`插件 ${pluginId} 未找到`);
+            return;
+        }
+        logger.log(`插件 ${pluginId} 已找到`);
+        command = plugin.commands.find((command) => {
+            return command.trigger.includes(cmdName);
+        });
+        args = parts.slice(2);
+    } else {
+        // 快捷模式
+        logger.log(`正在使用快捷模式搜索`);
+        cmdName = parts[0];
+        const quickCmd = quickCommands[cmdName];
+        if (quickCmd) {
+            command = quickCmd.command;
+        }
+        args = parts.slice(1);
+    }
 
 
-        if (!command) {
+    if (!command) {
+        if (enableSuperCommand) {
             // 超级命令
             for (const [pluginId, fn] of Object.entries(superCommands.onActivateFailed)) {
                 const res = await fn(contextHelper(context));
@@ -746,9 +737,11 @@ export function pluginLoader(config = {}) {
                     return;
                 }
             }
-            return;
-        } else {
-            logger.log(`命令 ${cmdName} 已找到`);
+        }
+        return;
+    } else {
+        logger.log(`命令 ${cmdName} 已找到`);
+        if (enableSuperCommand) {
             // 超级命令
             for (const [pluginId, fn] of Object.entries(superCommands.afterActivate)) {
                 const res = await fn(contextHelper(context));
@@ -758,13 +751,15 @@ export function pluginLoader(config = {}) {
                 }
             }
         }
+    }
 
-        try {
-            await command.fn(contextHelper(context), ...args);
-        } catch (e) {
-            logger.error(`命令 ${cmdName} 执行出错：`, e);
-        }
+    try {
+        await command.fn(contextHelper(context), ...args);
+    } catch (e) {
+        logger.error(`命令 ${cmdName} 执行出错：`, e);
+    }
 
+    if (enableSuperCommand) {
         // 超级命令
         for (const [pluginId, fn] of Object.entries(superCommands.onFinally)) {
             const res = await fn(contextHelper(context));
@@ -773,7 +768,30 @@ export function pluginLoader(config = {}) {
                 return;
             }
         }
-    };
+    }
+}
+
+/**
+ * @typedef {Object} PluginLoaderConfig
+ * @property {((context: Context) => (string[] | undefined))?} activate
+ */
+
+/**
+ * @param {PluginLoaderConfig} _config
+ * @returns {any}
+ */
+
+export function pluginLoader(_config = {}) {
+
+    initStore();
+
+    config = {
+        activate: _config.activate ?? ((context) => {
+            if (context.message[0].type !== 'text')
+                return undefined;
+            return context.message[0].data.text.trim().split(/\s+/);
+        })
+    }
 
     return [
         {
@@ -792,7 +810,10 @@ export function pluginLoader(config = {}) {
             type: "trigger",
             value: {
                 event: "NAPCAT_MESSAGE",
-                handler: mainHander
+                handler: async ({ context }) => {
+                    logger.log("收到消息：", JSON.stringify(context.message));
+                    await runCommand(context, undefined, true);
+                }
             }
         },
         {
