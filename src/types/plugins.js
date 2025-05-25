@@ -39,8 +39,12 @@
  * @property {number} groupId - 群组 ID（驼峰命名接口）
  * @property {number} user_id - 用户 ID
  * @property {number} userId - 用户 ID（驼峰命名接口）
+ * @property {string} user_nickname - 消息内容
+ * @property {string} userNickname - 消息内容（驼峰命名接口）
  * @property {string} message_type - 消息类型
  * @property {string} messageType - 消息类型（驼峰命名接口）
+ * @property {string} raw_message - 消息内容
+ * @property {string} rawMessage - 消息内容（驼峰命名接口）
  * @property {(...args: any[]) => any} quick_action - 快速操作方法
  * @property {(...args: any[]) => any} quickAction - 快速操作方法（驼峰命名接口）
  * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例

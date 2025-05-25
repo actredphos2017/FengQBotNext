@@ -8,15 +8,22 @@ export function atMessageActivate(botQQId) {
             if (!(key && key.type === "at" && key.data && key.data.qq === botQQId)) {
                 return undefined;
             }
-            message = context.message[1];
+            message = context.message.slice(1);
         } else if (context.message_type === "private") {
             if (context.message.length < 1) return undefined;
-            message = context.message[0];
+            message = context.message;
         }
 
-        if (message && message.type === "text" && message.data && typeof message.data.text === "string") {
-            return message.data.text.trim().split(/\s+/);
-        }
-        return undefined;
+        const parts = [];
+
+        message.forEach((msg) => {
+            if (msg.type === "text") {
+                parts.push(...msg.data.text.trim().split(/\s+/));
+            } else if (msg.type === "at") {
+                parts.push(msg.data.qq);
+            }
+        });
+        if (parts.length === 0) return undefined;
+        return parts;
     }
 }

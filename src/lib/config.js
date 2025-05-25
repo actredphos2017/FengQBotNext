@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function loadConfig(file) {
-    const configPath = path.join(__dirname, `../config/${file}.yml`);  // 保持源码与编译后一致
+    const configPath = path.join(__dirname, `../config/${file}.yml`);
     try {
         return yaml.load(fs.readFileSync(configPath, 'utf8'));
     } catch (error) {

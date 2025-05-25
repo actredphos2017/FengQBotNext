@@ -416,6 +416,10 @@ function contextHelper(ctx) {
         userId: ctx.user_id,
         message_type: ctx.message_type,
         messageType: ctx.message_type,
+        userNickname: ctx.sender.nickname,
+        user_nickname: ctx.sender.nickname,
+        raw_message: ctx.raw_message,
+        rawMessage: ctx.raw_message,
         quick_action(...args) {
             return ctx.quick_action(...args);
         },
