@@ -309,7 +309,7 @@ async function loadPlugin(pluginDefine) {
                 return;
             }
             logger.log(`插件 ${pluginId} 在 ${time} 时机注册了超级命令`);
-            pluginDefine.superCommands.push({time, fn}); // TODO WHY?
+            pluginDefine.superCommands.push({time, fn});
         },
         assert: (pluginId) => {
             const plugin = plugins[pluginId];

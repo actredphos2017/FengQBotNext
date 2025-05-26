@@ -185,10 +185,8 @@ const plugin = {
 
     }, { time: "beforeActivate" });
 
-    api.cmd(["帮助", "?", "？"], async (ch, pluginId) => {
-      /**
-       * @type {{[pluginId: string]: import("../types/plugins").PluginDefine}}
-       */
+    api.cmd(["帮助", "?", "？", "help"], async (ch, pluginId) => {
+
       const plugins = api.outside.__plugins;
 
       function getPluginName(pluginId) {
@@ -200,14 +198,6 @@ const plugin = {
         }
       }
 
-      /**
-      * @type {{
-      *     pluginId: string,
-      *     fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
-      *     config: import("../types/plugins").CommandConfig,
-      *     trigger: string[]
-      * }[]}
-      */
       let commands = api.outside.__commands;
 
       if (pluginId) {

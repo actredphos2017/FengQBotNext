@@ -109,7 +109,16 @@
  * @property {function(string, any?): Promise<void>} send - 发送事件
  * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
  * @property {() => BotHelper} createBot - 机器人助手
- * @property {{[pluginId: string]: PluginInterface}} outside - 外部插件接口
+ * @property {{
+ *     [pluginId: string]: PluginInterface,
+ *     __plugins: {[pluginId: string]: PluginDefine},
+ *     __commands: {
+ *         pluginId: string,
+ *         fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>,
+ *         config: CommandConfig,
+ *         trigger: string[]
+ *     }[],
+ * }} outside - 外部插件接口
  *
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {(trigger: (ch: ContextHelper | BotHelper, arg: any?) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
