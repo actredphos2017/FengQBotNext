@@ -127,7 +127,30 @@ export default {
             return;
         }
 
+        api.cmd(["ai激活接口"], async (ch) => {
+            const enabled = await api.store.get("enabledAiInterface", false);
+            if (enabled) {
+                await ch.text("接口早已激活~").goAutoReply();
+            } else {
+                await api.store.set("enabledAiInterface", true);
+                await ch.text("AI 现在可以使用插件接口").goAutoReply();
+            }
+        });
+
+        api.cmd(["ai禁用接口"], async (ch) => {
+            const enabled = await api.store.get("enabledAiInterface", false);
+            if (enabled) {
+                await api.store.set("enabledAiInterface", false);
+                await ch.text("AI 现在不能使用插件接口").goAutoReply();
+            } else {
+                await ch.text("接口早已禁用~").goAutoReply();
+            }
+        });
+
         async function getIntefaces() {
+            if (!(await api.store.get("enabledAiInterface", false))) {
+                return [];
+            }
             const interfaces = [];
             /**
              * @type {{ [key: string]: import("../types/plugins.js").PluginDefine }}

@@ -379,7 +379,7 @@ async function loadPlugin(pluginDefine) {
     }
 
     const withPrefix = (args) => {
-        return [`[${pluginDefine.instance.config.id}]`, ...args]; // TODO
+        return [`[${pluginDefine.instance.config.id}]`, ...args];
     }
 
     pluginAPI.log = function(...args) {
