@@ -63,6 +63,11 @@
 
 /**
  * @typedef {Object} BotHelper - 机器人助手
+ * @property {number | undefined} group_id - 群组 ID
+ * @property {number | undefined} groupId - 群组 ID（驼峰命名接口）
+ * @property {number | undefined} user_id - 用户 ID
+ * @property {number | undefined} userId - 用户 ID（驼峰命名接口）
+ * @property {boolean | undefined} isGroup - 是否为群组消息
  * @property {(groupId: number | string) => BotHelper} openGroup - 打开群聊
  * @property {(userId: number | string) => BotHelper} openPrivate - 打开私聊
  * @property {(text: string) => BotHelper} text - 设置文本内容并返回上下文助手实例
@@ -107,7 +112,7 @@
  * @property {{[pluginId: string]: PluginInterface}} outside - 外部插件接口
  *
  * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
- * @property {(trigger: (ch: ContextHelper, arg: any?) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
+ * @property {(trigger: (ch: ContextHelper | BotHelper, arg: any?) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
  *
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载

@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import { ApiKey as apiConfig } from "../lib/config.js";
+import { getPureMessage } from "../middleware/pluginLoader.js";
 
 
 // 公共回复要求部分
@@ -441,6 +442,11 @@ export default {
         }, { time: "beforeActivate" });
 
         api.super(aiAutoResponse, { time: "onActivateFailed" });
+
+        api.super(async (chOrBh, msg) => {
+            if (!chOrBh.isGroup) return;
+            await pushMessage(aiConfig.selfQQ, chOrBh.groupId, getPureMessage(msg));
+        }, { time: "onGo" });
 
         api.expose({ aiAnswer });
     }

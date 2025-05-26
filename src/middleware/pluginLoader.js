@@ -547,23 +547,30 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
         napcat: qqBot,
         getPureMessage(onlyText = true) {
             if (onlyText && ctx.message.some(e => (e.type !== "text"))) return undefined;
-            return ctx.message.map(e => {
-                if (e.type === "text") {
-                    return String(e.data.text);
-                } else if (e.type === "file") {
-                    return "[FILE]";
-                } else if (e.type === "at") {
-                    return `[AT:${e.data.qq}]`;
-                } else if (e.type === "face") {
-                    return `[EMOJI]`;
-                } else if (e.type === "image") {
-                    return "[IMAGE]";
-                } else {
-                    return "";
-                }
-            }).join();
+            return getPureMessage(ctx.message);
         }
     }
+}
+
+export function getPureMessage(msg) {
+    if (!Array.isArray(msg)) {
+        return undefined;
+    }
+    return msg.map(e => {
+        if (e.type === "text") {
+            return String(e.data.text);
+        } else if (e.type === "file") {
+            return "[FILE]";
+        } else if (e.type === "at") {
+            return `[AT:${e.data.qq}]`;
+        } else if (e.type === "face") {
+            return `[EMOJI]`;
+        } else if (e.type === "image") {
+            return "[IMAGE]";
+        } else {
+            return "";
+        }
+    }).join();
 }
 
 /**
@@ -574,13 +581,26 @@ function botHelper(onGoSuperFn = undefined) {
     let requestBuffer = [];
     let virtualContext = undefined;
 
-    return {
+    /**
+     * @type {import("../types/plugins.js").BotHelper}
+     */
+    const res = {
+        isGroup: undefined,
+        group_id: undefined,
+        groupId: undefined,
+        user_id: undefined,
+        userId: undefined,
         openGroup(groupId) {
             virtualContext = {
                 id: groupId,
                 isGroup: true
             };
             requestBuffer = [];
+            this.isGroup = true;
+            this.group_id = groupId;
+            this.groupId = groupId;
+            this.user_id = undefined;
+            this.userId = undefined;
             return this;
         },
         openPrivate(userId) {
@@ -589,6 +609,11 @@ function botHelper(onGoSuperFn = undefined) {
                 isGroup: false
             };
             requestBuffer = [];
+            this.isGroup = false;
+            this.group_id = undefined;
+            this.groupId = undefined;
+            this.user_id = userId;
+            this.userId = userId;
             return this;
         },
         text(text) {
@@ -678,6 +703,7 @@ function botHelper(onGoSuperFn = undefined) {
         }
     }
 
+    return res;
 }
 
 let config = {};
