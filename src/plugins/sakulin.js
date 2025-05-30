@@ -213,17 +213,16 @@ export default {
 
         const chatLock = {};
 
+        /**
+         * @param {import("../types/plugins.js").ContextHelper} ch
+         */
         async function aiResponse(ch) {
             if (!ch.isGroup) {
                 await ch.text("Emmm...不好意思哈，这个功能只能在群里可以使用哦~ >_<").go();
                 return;
             }
 
-            if (chatLock[ch.groupId]) {
-                return;
-            }
-
-            chatLock[ch.groupId] = true;
+            await ch.setEmojiResponse("nkt", true);
 
             try {
                 const messages = await getMessages(ch.groupId);
@@ -255,6 +254,10 @@ export default {
                         ch.text(part);
                     }
                 }
+
+                await ch.setEmojiResponse("nkt", false);
+                await ch.setEmojiResponse("ww", true);
+
                 await ch.go();
                 await pushMessage(aiConfig.selfQQ, ch.groupId, content);
                 if (typeof responseObject.call === "string") {
@@ -276,6 +279,8 @@ export default {
             }
 
             chatLock[ch.groupId] = true;
+            
+            await ch.setEmojiResponse("nkt", true);
 
             try {
                 const messages = await getMessages(ch.groupId);
@@ -298,6 +303,7 @@ export default {
                      * @type {{reply: boolean, msg: string}}
                      */
                     const responseObject = JSON.parse(responseContent);
+                    await ch.setEmojiResponse("nkt", false);
                     if (responseObject.reply === true && responseObject.msg) {
                         const content = responseObject.msg;
                         api.log("[AI智能回复] 我认为自己需要发言！");
@@ -313,6 +319,7 @@ export default {
                                 ch.text(part);
                             }
                         }
+                        await ch.setEmojiResponse("ww", true);
                         await ch.go();
                         await pushMessage(aiConfig.selfQQ, ch.groupId, content);
                         if (typeof responseObject.call === "string") {
@@ -320,6 +327,7 @@ export default {
                         }
                         return false;
                     } else {
+                        await ch.setEmojiResponse("doge", true);
                         api.log(`[AI智能回复] 我选择保持沉默！`);
                         if (typeof responseObject.call === "string") {
                             await ch.redirect(responseObject.call);

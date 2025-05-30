@@ -1,9 +1,30 @@
-const faceMap = {
+export const faceMap = {
+
     ww: 277,
+    "旺旺": 227,
+
     nzqk: 307,
+    "喵喵": 307,
+
     youl: 187,
+    "幽灵": 187,
+
     wx: 14,
-    dk: 9
+    "微笑": 14,
+
+    dk: 9,
+    "大哭": 9,
+
+    nkt: 262,
+    "脑阔疼": 262,
+
+    yiw: 32,
+    "疑问": 32,
+
+    doge: 179,
+
+    xyx: 178,
+    "斜眼笑": 178
 }
 
 const defaultFaceId = 14;

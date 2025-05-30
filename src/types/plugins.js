@@ -46,6 +46,7 @@
  * @property {string} messageType - 消息类型（驼峰命名接口）
  * @property {string} raw_message - 消息内容
  * @property {string} rawMessage - 消息内容（驼峰命名接口）
+ * @property {(emojiId: string, set: boolean) => Promise<void>} setEmojiResponse - 设置表情响应
  * @property {(...args: any[]) => any} quick_action - 快速操作方法
  * @property {(...args: any[]) => any} quickAction - 快速操作方法（驼峰命名接口）
  * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例

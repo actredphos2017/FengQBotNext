@@ -6,7 +6,7 @@ import {fileURLToPath} from "node:url";
 import pipe from "../core/pipe.js";
 import { getLoadLevel } from "../types/plugins.js";
 import { logger } from "../core/logger.js";
-import { getFace } from "../lib/faces.js";
+import { getFace, faceMap } from "../lib/faces.js";
 import schedule from 'node-schedule';
 import { initStore, getPluginStore, setPluginStore } from "../lib/store.js";
 
@@ -431,6 +431,19 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
         user_nickname: ctx.sender.nickname,
         raw_message: ctx.raw_message,
         rawMessage: ctx.raw_message,
+        async setEmojiResponse(emojiId, set = true) {
+
+            const target = faceMap[emojiId];
+            if (typeof target === "number") {
+                emojiId = String(target);
+            }
+
+            await qqBot.set_msg_emoji_like({
+                message_id: ctx.message_id,
+                emoji_id: emojiId,
+                set: set
+            });
+        },
         quick_action(...args) {
             return ctx.quick_action(...args);
         },
@@ -804,7 +817,10 @@ async function runCommand(context, parts = undefined, enableSuperCommand = false
                 await fn(contextHelper(context, scf), message);
             }
         }) : undefined;
-        await command.fn(contextHelper(context, scf), ...args);
+
+        const ch = contextHelper(context, scf);
+        await ch.setEmojiResponse("xyx", true);
+        await command.fn(ch, ...args);
     } catch (e) {
         logger.error(`命令 ${cmdName} 执行出错：`, e);
     }
