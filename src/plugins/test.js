@@ -9,7 +9,9 @@ export default {
         name: "测试",
         description: "Test",
         author: "Sakulin",
-        version: "1.0.0"
+        version: "1.0.0",
+        hideInHelpPage: true,
+        disabled: true
     },
     setup(api) {
         if (!api.assert("util")) {

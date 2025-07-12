@@ -118,7 +118,8 @@ export default {
         name: "红磷的聊天机器人",
         description: "一个 AI 的聊天机器人插件，支持在群聊中自动回复和强制说话功能，可对群聊的 AI 功能进行激活、禁用操作，还能控制群聊的历史记录。",
         author: "Sakulin",
-        version: "1.0.2"
+        version: "1.0.2",
+        disabled: true
     },
     setup(api) {
 

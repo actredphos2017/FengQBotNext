@@ -9,7 +9,8 @@ export default {
     config: {
         id: "jixin",
         name: "芯",
-        author: "尚寂新"
+        author: "尚寂新",
+        disabled: true
     },
     setup(api) {
 

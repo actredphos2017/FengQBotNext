@@ -190,6 +190,10 @@ async function loadPlugins(hard = false) {
         if (!plugin.loaded) {
             try {
                 clearJobs(plugin.instance.config.id);
+                if (plugin.instance.config.disabled) {
+                    logger.log(`插件 ${plugin.instance.config.id} 已禁用，已跳过`);
+                    continue;
+                }
                 await loadPlugin(plugin);
                 if (plugin.rejected) {
                     logger.log(`插件 ${plugin.instance.config.id} 拒绝加载`);

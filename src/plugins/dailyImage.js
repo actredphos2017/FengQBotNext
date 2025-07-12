@@ -92,7 +92,7 @@ export default {
             } else {
                 await ch.text("该群未激活每日一图").go();
             }
-        })
+        });
 
         api.schedule.create("0 0 22 * * *", async () => {
             const bot = api.createBot();

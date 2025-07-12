@@ -13,7 +13,8 @@ export default {
         id: "render",
         name: "内置工具",
         description: "Util",
-        level: "functional"
+        level: "functional",
+        hideInHelpPage: true
     },
     setup(api) {
 

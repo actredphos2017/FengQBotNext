@@ -8,7 +8,8 @@ export default {
         id: "economy",
         name: "枫林肥皂币经济系统",
         author: "Sakulin",
-        level: "functional"
+        level: "functional",
+        disabled: true
     },
     setup(api) {
 

@@ -21,7 +21,8 @@ const plugin = {
     description: "Util",
     author: "Sakulin",
     version: "1.0.0",
-    level: "core"
+    level: "core",
+    hideInHelpPage: true,
   },
   setup(api) {
 
@@ -198,10 +199,21 @@ const plugin = {
         }
       }
 
+      function getHideInHelpPage(pluginId) {
+        const plugin = plugins[pluginId];
+        if (plugin) {
+          return Boolean(plugin.instance.config.hideInHelpPage);
+        } else {
+          return false;
+        }
+      }
+
       let commands = api.outside.__commands;
 
       if (pluginId) {
         commands = commands.filter(e => e.pluginId === pluginId);
+      } else {
+        commands = commands.filter(e => !getHideInHelpPage(e.pluginId));
       }
 
       const img = await api.outside.render.renderHtml({

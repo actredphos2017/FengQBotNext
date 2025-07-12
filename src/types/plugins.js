@@ -167,6 +167,8 @@ export function getLoadLevel(level) {
  * @property {string} author - 插件作者
  * @property {string} version - 插件版本
  * @property {LoadLevel} level - 插件类型、加载优先级（可选）
+ * @property {boolean} hideInHelpPage - 是否在帮助页面中隐藏（可选）
+ * @property {boolean} disabled - 是否禁用插件（可选）
  */
 
 /**
