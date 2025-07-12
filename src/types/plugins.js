@@ -51,6 +51,7 @@
  * @property {(...args: any[]) => any} quickAction - 快速操作方法（驼峰命名接口）
  * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例
  * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => ContextHelper} image - 设置图片内容并返回上下文助手实例
+ * @property {(path: string, filename: string) => BotHelper} file - 设置文件内容并返回上下文助手实例
  * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
  * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
@@ -73,6 +74,7 @@
  * @property {(userId: number | string) => BotHelper} openPrivate - 打开私聊
  * @property {(text: string) => BotHelper} text - 设置文本内容并返回上下文助手实例
  * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => BotHelper} image - 设置图片内容并返回上下文助手实例
+ * @property {(path: string, filename: string) => BotHelper} file - 设置文件内容并返回上下文助手实例
  * @property {(who?: number) => BotHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
  * @property {(instance?: any) => BotHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise

@@ -4,11 +4,14 @@ import crypto from 'crypto';
 import {promises as fsPromises} from 'fs';
 import {fileURLToPath} from "node:url";
 import pipe from "../core/pipe.js";
-import { getLoadLevel } from "../types/plugins.js";
-import { logger } from "../core/logger.js";
-import { getFace, faceMap } from "../lib/faces.js";
+import {getLoadLevel} from "../types/plugins.js";
+import {logger} from "../core/logger.js";
+import {faceMap, getFace} from "../lib/faces.js";
 import schedule from 'node-schedule';
-import { initStore, getPluginStore, setPluginStore } from "../lib/store.js";
+import {getPluginStore, initStore, setPluginStore} from "../lib/store.js";
+
+import {fileToBase64} from "../utils/fileHelper.js";
+import { log } from "node:console";
 
 let qqBot = undefined;
 
@@ -180,7 +183,10 @@ async function loadPlugins(hard = false) {
     /**
      * @type {import("../types/plugins.js").PluginDefine[]}
      */
-    const pluginList = Object.values(plugins).map(e => { e.level = getLoadLevel(e.level); return e; }).toSorted((a, b) => b.level - a.level);
+    const pluginList = Object.values(plugins).map(e => {
+        e.level = getLoadLevel(e.level);
+        return e;
+    }).toSorted((a, b) => b.level - a.level);
 
     superCommands = emptySuperCommand();
     commandsForHelp = emptyCommandForHelp();
@@ -270,7 +276,7 @@ async function loadPlugin(pluginDefine) {
             await pipe.emit(event, data);
         },
         expose: (api) => {
-            pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
+            pluginDefine.api = {...(pluginDefine.api ?? {}), ...api};
         },
         createBot: () => {
             const bh = botHelper(async (message) => {
@@ -354,7 +360,7 @@ async function loadPlugin(pluginDefine) {
             async set(key, value) {
                 const target = await getPluginStore(pluginId);
                 if (!target) {
-                    await setPluginStore(pluginId, JSON.stringify({ [key]: value }));
+                    await setPluginStore(pluginId, JSON.stringify({[key]: value}));
                 } else {
                     try {
                         const res = JSON.parse(target);
@@ -386,33 +392,82 @@ async function loadPlugin(pluginDefine) {
         return [`[${pluginDefine.instance.config.id}]`, ...args];
     }
 
-    pluginAPI.log = function(...args) {
+    pluginAPI.log = function (...args) {
         logger.log(...withPrefix(args));
     }
 
-    pluginAPI.log.error = function(...args) {
+    pluginAPI.log.error = function (...args) {
         logger.error(...withPrefix(args));
     }
 
-    pluginAPI.log.log = function(...args) {
+    pluginAPI.log.log = function (...args) {
         logger.log(...withPrefix(args));
     }
 
-    pluginAPI.log.warn = function(...args) {
+    pluginAPI.log.warn = function (...args) {
         logger.warn(...withPrefix(args));
     }
 
-    pluginAPI.log.debug = function(...args) {
+    pluginAPI.log.debug = function (...args) {
         logger.debug(...withPrefix(args));
     }
 
-    pluginAPI.log.info = function(...args) {
+    pluginAPI.log.info = function (...args) {
         logger.info(...withPrefix(args));
     }
 
     await pluginDefine.instance.setup(pluginAPI);
 
     return pluginDefine;
+}
+
+
+async function buildMessage(requestBuffer) {
+
+    const message = [];
+    for (const item of requestBuffer) {
+        if (item.type === "text") {
+            message.push({type: "text", data: {text: String(item.data.text)}});
+        } else if (item.type === "image") {
+            let image = item.data.image;
+            const name = item.data.name;
+            if (typeof image !== 'string') {
+                if (image instanceof Blob) {
+                    image = Buffer.from(await image.arrayBuffer()).toString("base64");
+                } else if (image instanceof Buffer) {
+                    image = image.toString('base64');
+                } else if (image instanceof Uint8Array) {
+                    image = Buffer.from(image).toString('base64');
+                }
+
+                if (typeof image !== "string") {
+                    logger.error('不支持的图片类型');
+                    continue;
+                }
+            }
+
+            if (!image.startsWith("base64://"))
+                image = `base64://${image}`;
+
+            message.push({
+                type: "image",
+                data: {file: image, name}
+            });
+        } else if (item.type === "at") {
+            message.push({type: "at", data: {qq: item.data.who}});
+            message.push({type: "text", data: {text: " "}});
+        } else if (item.type === "reply") {
+            message.push({type: "reply", data: {id: item.data.id}});
+        } else if (item.type === "file") {
+            let fileBase64 = await fileToBase64(item.data.path);
+            if (!fileBase64.startsWith("base64://"))
+                fileBase64 = `base64://${fileBase64}`;
+            message.push({type: "file", data: {file: fileBase64, name: item.data.filename}});
+        } else if (item.type === "instance") {
+            message.push(item.data.instance);
+        }
+    }
+    return message;
 }
 
 /**
@@ -462,9 +517,13 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
             requestBuffer.push({type: "image", data: {image, name}});
             return this;
         },
+        file(path, filename) {
+            requestBuffer.push({type: "file", data: {path, filename}});
+            return this;
+        },
         at(who = ctx.user_id) {
             if (this.isGroup)
-                requestBuffer.push({ type: "at", data: { who } });
+                requestBuffer.push({type: "at", data: {who}});
             return this;
         },
         face(instance) {
@@ -474,57 +533,16 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
                     instance = faceInstance;
                 }
             }
-            requestBuffer.push({ type: "instance", data: { instance } });
+            requestBuffer.push({type: "instance", data: {instance}});
             return this;
         },
         async go() {
-            const message = [];
             if (requestBuffer.length === 0) {
                 return;
             }
-            for (const item of requestBuffer) {
-                if (item.type === "text") {
-                    message.push({type: "text", data: {text: String(item.data.text)}});
-                } else if (item.type === "image") {
-                    let image = item.data.image;
-                    const name = item.data.name;
-                    if (typeof image !== 'string') {
-                        if (image instanceof Blob) {
-                            image = Buffer.from(await image.arrayBuffer()).toString("base64");
-                        } else if (image instanceof Buffer) {
-                            image = image.toString('base64');
-                        } else if (image instanceof Uint8Array) {
-                            image = Buffer.from(image).toString('base64');
-                        }
 
-                        if (typeof image !== "string") {
-                            logger.error('不支持的图片类型');
-                            continue;
-                        }
-                    }
+            const message = await buildMessage(requestBuffer);
 
-                    if (!image.startsWith("base64://"))
-                        image = `base64://${image}`;
-
-                    message.push({
-                        type: "image",
-                        data: { file: image, name }
-                    });
-                } else if (item.type === "at") {
-                    message.push({ type: "at", data: { qq: item.data.who } });
-                    message.push({ type: "text", data: { text: " " } });
-                } else if (item.type === "reply") {
-                    message.push({ type: "reply", data: { id: item.data.id } });
-                } else if (item.type === "instance") {
-                    message.push(item.data.instance);
-                }
-            }
-
-            let prepareLog = JSON.stringify(message);
-            if (prepareLog.length > 50) {
-                prepareLog = prepareLog.slice(0, 50) + "...";
-            }
-            logger.log("发送消息：", prepareLog);
             if (this.isGroup) {
                 await qqBot.send_group_msg({
                     group_id: ctx.group_id,
@@ -546,7 +564,7 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
                 return;
             }
             if (this.isGroup) {
-                requestBuffer = [{ type: "reply", data: { id: ctx.message_id } }, ...requestBuffer];
+                requestBuffer = [{type: "reply", data: {id: ctx.message_id}}, ...requestBuffer];
             }
             return await this.go();
         },
@@ -598,10 +616,7 @@ function botHelper(onGoSuperFn = undefined) {
     let requestBuffer = [];
     let virtualContext = undefined;
 
-    /**
-     * @type {import("../types/plugins.js").BotHelper}
-     */
-    const res = {
+    return {
         isGroup: undefined,
         group_id: undefined,
         groupId: undefined,
@@ -641,9 +656,13 @@ function botHelper(onGoSuperFn = undefined) {
             requestBuffer.push({type: "image", data: {image, name}});
             return this;
         },
+        file(path, filename) {
+            requestBuffer.push({type: "file", data: {path, filename}});
+            return this;
+        },
         at(who) {
             if (virtualContext.isGroup)
-                requestBuffer.push({ type: "at", data: { who } });
+                requestBuffer.push({type: "at", data: {who}});
             return this;
         },
         face(instance) {
@@ -653,55 +672,15 @@ function botHelper(onGoSuperFn = undefined) {
                     instance = faceInstance;
                 }
             }
-            requestBuffer.push({ type: "instance", data: { instance } });
+            requestBuffer.push({type: "instance", data: {instance}});
             return this;
         },
         async go() {
             if (requestBuffer.length === 0) {
                 return;
             }
-            const message = [];
-            for (const item of requestBuffer) {
-                if (item.type === "text") {
-                    message.push({type: "text", data: {text: String(item.data.text)}});
-                } else if (item.type === "image") {
-                    let image = item.data.image;
-                    const name = item.data.name;
-                    if (typeof image !== 'string') {
-                        if (image instanceof Blob) {
-                            image = Buffer.from(await image.arrayBuffer()).toString("base64");
-                        } else if (image instanceof Buffer) {
-                            image = image.toString('base64');
-                        } else if (image instanceof Uint8Array) {
-                            image = Buffer.from(image).toString('base64');
-                        }
-                    } else {
-                        logger.error('不支持的图片类型');
-                        continue;
-                    }
+            const message = await buildMessage(requestBuffer);
 
-                    if (!image.startsWith("base64://"))
-                        image = `base64://${image}`;
-
-                    message.push({
-                        type: "image",
-                        data: { file: image, name }
-                    });
-                } else if (item.type === "at") {
-                    message.push({ type: "at", data: { qq: item.data.who } });
-                    message.push({ type: "text", data: { text: " " } });
-                } else if (item.type === "reply") {
-                    message.push({ type: "reply", data: { id: item.data.id } });
-                } else if (item.type === "instance") {
-                    message.push(item.data.instance);
-                }
-            }
-
-            let prepareLog = JSON.stringify(message);
-            if (prepareLog.length > 50) {
-                prepareLog = prepareLog.slice(0, 50) + "...";
-            }
-            logger.log("发送消息：", prepareLog);
             if (virtualContext.isGroup) {
                 await qqBot.send_group_msg({
                     group_id: Number(virtualContext.id),
@@ -718,9 +697,7 @@ function botHelper(onGoSuperFn = undefined) {
                 await onGoSuperFn(message);
             }
         }
-    }
-
-    return res;
+    };
 }
 
 let config = {};
@@ -880,7 +857,7 @@ export function pluginLoader(_config = {}) {
             type: "trigger",
             value: {
                 event: "NAPCAT_MESSAGE",
-                handler: async ({ context }) => {
+                handler: async ({context}) => {
                     logger.log("收到消息：", JSON.stringify(context.message));
                     await runCommand(context, undefined, true);
                 }
