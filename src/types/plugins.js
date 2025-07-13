@@ -96,14 +96,14 @@
 
 /**
  * @typedef {Object} PluginAPIStore
- * @property {StoreGetFn} get
- * @property {StoreSetFn} set
+ * @property {StoreGetFn} get 获取插件数据
+ * @property {StoreSetFn} set 设置插件数据
  */
 
 /**
  * @typedef {Object} PluginAPISchedule
- * @property {(cron: string, fn: function(): void) => import("node-schedule").Job} create
- * @property {(job: import("node-schedule").Job) => void} remove
+ * @property {(cron: string, fn: function(): void) => import("node-schedule").Job} create - 创建定时任务
+ * @property {(job: import("node-schedule").Job) => void} remove - 删除定时任务
  */
 
 /**
@@ -131,7 +131,7 @@
  * @property {function(...any): void} log - 日志记录器
  * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据（已弃用，使用 store 代替）
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
- * @property {PluginAPIStore} store - 更好的持久化数据访问方法
+ * @property {PluginAPIStore} store - 更好的持久化数据（插件间隔离）访问方法
  * @property {PluginAPISchedule} schedule - 定时任务
  */
 

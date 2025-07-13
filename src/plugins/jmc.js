@@ -71,8 +71,16 @@ export default {
             /**
              * @type {ResponseTarget}
              */
-            const target = await new Promise((resolve) => {
+            const target = await new Promise((resolve, reject) => {
                 const ws = new WebSocket(`ws://${host}:${port}`);
+
+                let done = false;
+
+                ws.onclose = (e) => {
+                    if (!done) {
+                        reject(e);
+                    }
+                }
 
                 ws.onopen = () => {
                     ws.send(JSON.stringify({ id }));
@@ -81,6 +89,7 @@ export default {
                 ws.onmessage = (res) => {
                     const responseData = JSON.parse(res.data)
                     if (responseData["SIGNAL"] === "RESPONSE") {
+                        done = true;
                         ws.close(1000);
                         resolve(responseData);
                     }
@@ -91,7 +100,7 @@ export default {
             });
 
             if (!target) {
-                await ch.text("好像发生了点异常？能联系开发者看看发生什么了吗").face("幽灵").goAutoReply();
+                await ch.text("可恶的管理员没有把接口打开").face("幽灵").text("\n快去叫他修！").face("大哭").goAutoReply();
                 return;
             }
 
@@ -127,17 +136,13 @@ export default {
                     if (Number.isNaN(numberEpisode) || numberEpisode < 0 || numberEpisode >= target.pdf.length) {
                         await ch.text("你想看第几章？我没明白").face("幽灵").goAutoReply();
                     } else {
-                        let name = target.detail.episode_list[numberEpisode][2];
-                        if (!name) {
-                            name = `${id}_${numberEpisode + 1}`;
-                        }
-                        await ch.file(target.pdf[numberEpisode], `${name}.pdf`).go();
+                        await ch.file(target.pdf[numberEpisode], `${id}_${numberEpisode + 1}.pdf`).go();
                     }
                 } else {
                     await ch.text("找到是找到了，但是不知道为啥是空的").face("大哭").goAutoReply();
                 }
             } else {
-                await ch.text("寻找时发生异常：" + target.msg).goAutoReply();
+                await ch.text("哎呀……接口传来了悲报：" + target.msg).goAutoReply();
             }
 
         }, {

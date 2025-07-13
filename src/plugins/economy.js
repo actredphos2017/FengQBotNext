@@ -8,10 +8,13 @@ export default {
         id: "economy",
         name: "枫林肥皂币经济系统",
         author: "Sakulin",
-        level: "functional",
-        disabled: true
+        level: "functional"
     },
     setup(api) {
+
+        async function addMoney(userId, money) {
+            await setMoney(userId, (await getMoney(userId)) + money);
+        }
 
         async function getMoney(userId) {
             const eco = await api.store.get("money", {});
@@ -75,7 +78,8 @@ export default {
 
         api.expose({
             getMoney,
-            spendMoney
+            spendMoney,
+            addMoney
         });
     }
 }
