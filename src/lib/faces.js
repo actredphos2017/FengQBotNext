@@ -1,7 +1,7 @@
 export const faceMap = {
 
     ww: 277,
-    "旺旺": 227,
+    "旺旺": 277,
 
     nzqk: 307,
     "喵喵": 307,
