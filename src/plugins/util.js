@@ -201,11 +201,7 @@ const plugin = {
 
       function getHideInHelpPage(pluginId) {
         const plugin = plugins[pluginId];
-        if (plugin) {
-          return Boolean(plugin.instance.config.hideInHelpPage);
-        } else {
-          return false;
-        }
+        return plugin ? !!plugin.instance.config.hideInHelpPage : false;
       }
 
       let commands = api.outside.__commands;
@@ -216,16 +212,15 @@ const plugin = {
         commands = commands.filter(e => !getHideInHelpPage(e.pluginId));
       }
 
-      const img = await api.outside.render.renderHtml({
-        html: generateDOMCode(commands.map(e => ({
+      await ch.text(`| 指令 | 别名 | 描述 | 插件 |\n| --- | --- | --- | --- |\n` + commands.map(e => {
+        const res = {
           command: e.trigger[0],
           alias: e.trigger.length > 1 ? e.trigger.slice(1).join(" 或 ") : undefined,
           description: e.config.description,
           plugin: getPluginName(e.pluginId)
-        })))
-      })
-
-      await ch.image(img).goAutoReply();
+        };
+        return `| ${res.command} | ${res.alias} | ${res.description} | ${res.plugin} |`
+      }).join("\n")).goAutoReply();
     });
 
     api.expose({

@@ -14,7 +14,8 @@ export default {
         name: "内置工具",
         description: "Util",
         level: "functional",
-        hideInHelpPage: true
+        hideInHelpPage: true,
+        disabled: true
     },
     setup(api) {
 
