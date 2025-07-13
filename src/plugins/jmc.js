@@ -1,3 +1,4 @@
+//PLUGINX
 
 const host = "localhost"
 const port = 24357
@@ -65,6 +66,8 @@ export default {
                 return;
             }
 
+            await ch.text(`稍等哦，正在帮你找门牌号为 ${id} 的作品`).face("旺旺").goAutoReply();
+
             /**
              * @type {ResponseTarget}
              */
@@ -124,8 +127,11 @@ export default {
                     if (Number.isNaN(numberEpisode) || numberEpisode < 0 || numberEpisode >= target.pdf.length) {
                         await ch.text("你想看第几章？我没明白").face("幽灵").goAutoReply();
                     } else {
-                        const filename = `${target.detail.episode_list[numberEpisode][2]}.pdf`;
-                        await ch.file(target.pdf[numberEpisode], filename).go();
+                        let name = target.detail.episode_list[numberEpisode][2];
+                        if (!name) {
+                            name = `${id}_${numberEpisode + 1}`;
+                        }
+                        await ch.file(target.pdf[numberEpisode], `${name}.pdf`).go();
                     }
                 } else {
                     await ch.text("找到是找到了，但是不知道为啥是空的").face("大哭").goAutoReply();
