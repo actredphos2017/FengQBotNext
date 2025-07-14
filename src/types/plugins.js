@@ -36,8 +36,8 @@
 
 /**
  * @typedef {Object} ContextHelper - 上下文小帮手
- * @property {number} group_id - 群组 ID
- * @property {number} groupId - 群组 ID（驼峰命名接口）
+ * @property {number | undefined} group_id - 群组 ID
+ * @property {number | undefined} groupId - 群组 ID（驼峰命名接口）
  * @property {number} user_id - 用户 ID
  * @property {number} userId - 用户 ID（驼峰命名接口）
  * @property {string} user_nickname - 消息内容
@@ -52,7 +52,7 @@
  * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例
  * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => ContextHelper} image - 设置图片内容并返回上下文助手实例
  * @property {(path: string, filename: string) => BotHelper} file - 设置文件内容并返回上下文助手实例
- * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
+ * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用），默认艾特消息发送者
  * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
  * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
@@ -75,7 +75,7 @@
  * @property {(text: string) => BotHelper} text - 设置文本内容并返回上下文助手实例
  * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => BotHelper} image - 设置图片内容并返回上下文助手实例
  * @property {(path: string, filename: string) => BotHelper} file - 设置文件内容并返回上下文助手实例
- * @property {(who?: number) => BotHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
+ * @property {(who: number) => BotHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
  * @property {(instance?: any) => BotHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
  */
@@ -123,7 +123,7 @@
  *     }[],
  * }} outside - 外部插件接口
  *
- * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: string[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
+ * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: (string | undefined)[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
  * @property {(trigger: (ch: ContextHelper | BotHelper, arg: any?) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
  *
  * @property {function(string): boolean} assert - 检查插件是否存在
@@ -136,14 +136,16 @@
  */
 
 /**
- * @typedef {"core" | "functional" | "normal" | "finally" | number} LoadLevel
+ * @typedef {"core" | "SOTC" | "TOTC" | "functional" | "normal" | "finally" | number} LoadLevel
  */
 
 const levelMap = {
     core: 200,
+    SOTC: 199.99,
+    TOTC: 199.98,
     functional: 150,
     normal: 100,
-    finally: 50
+    finally: 50,
 };
 
 const defaultLevel = levelMap["normal"];
