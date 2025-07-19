@@ -24,6 +24,9 @@ export function setLogger(logger) {
     _logger.instance = logger;
 }
 
+/**
+ * @type {Logger}
+ */
 export const logger = new Proxy(_logger, {
     get(target, prop) {
         if (prop in target.instance) {

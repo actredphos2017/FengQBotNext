@@ -87,11 +87,11 @@
  */
 
 /**
- * @typedef {(name: string, defaultValue: T) => Promise<T>} StoreGetFn
+ * @typedef {function(name: string, defaultValue: any): Promise<any>} StoreGetFn
  */
 
 /**
- * @typedef {(name: string, value: T) => Promise<void>} StoreSetFn
+ * @typedef {function(name: string, value: any): Promise<void>} StoreSetFn
  */
 
 /**
@@ -110,7 +110,7 @@
  * @typedef {Object} PluginAPI
  * @property {function(string, EventListener): void} listen - 注册事件监听器
  * @property {function(string, any?): Promise<void>} send - 发送事件
- * @property {function(PluginInterfaceExpose): void} expose - 定义暴露的方法和属性
+ * @property {function(PluginInterface): void} expose - 定义暴露的方法和属性
  * @property {() => BotHelper} createBot - 机器人助手
  * @property {{
  *     [pluginId: string]: PluginInterface,
@@ -123,8 +123,8 @@
  *     }[],
  * }} outside - 外部插件接口
  *
- * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: (string | undefined)[]) => void | Promise<void>, config: CommandConfig) => void} cmd - 注册命令
- * @property {(trigger: (ch: ContextHelper | BotHelper, arg: any?) => (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
+ * @property {(trigger: string | string[], fn: (ch: ContextHelper, ...args: (string | undefined)[]) => void | Promise<void>, config?: CommandConfig) => void} cmd - 注册命令
+ * @property {(trigger: function(ContextHelper | BotHelper, any?): (boolean | Promise<boolean>), config: SuperCommandConfig) => void} super - 注册超级命令，返回 false 会终止命令的默认执行
  *
  * @property {function(string): boolean} assert - 检查插件是否存在
  * @property {function(string): void} reject - 拒绝插件加载
@@ -133,6 +133,31 @@
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
  * @property {PluginAPIStore} store - 更好的持久化数据（插件间隔离）访问方法
  * @property {PluginAPISchedule} schedule - 定时任务
+ * @property {function(GroupActionScopeConfig | undefined): GroupActionScope} defineGroupActionScope - 定义插件的群组作用域（语法糖）
+ */
+
+/**
+ * @typedef {Object} GroupActionScopeConfig
+ *
+ * @property {string | undefined} activateCmd - 激活命令（默认值："激活[插件ID]"）
+ * @property {(function(string): string) | undefined} activateSuccessMsg - 激活成功消息
+ * @property {(function(string): string) | undefined} activateRepeatedMsg - 重复激活消息
+ * @property {boolean | undefined} activateQuickCommand - 激活快速命令
+ *
+ * @property {string | undefined} deactivateCmd - 停用命令（默认值："解除[插件ID]"）
+ * @property {(function(string): string) | undefined} deactivateSuccessMsg - 停用成功消息
+ * @property {(function(string): string) | undefined} deactivateRepeatedMsg - 重复停用消息
+ * @property {boolean | undefined} deactivateQuickCommand - 停用快速命令
+ *
+ * @property {string | undefined} unknownGroupMsg - 未知群组提示
+ *
+ * @property {string[] | undefined} defaultEnabledGroups - 默认启用的群组列表
+ */
+
+/**
+ * @typedef {Object} GroupActionScope
+ * @property {function(ch: ContextHelper): Promise<boolean>} isInScope - 检查当前消息是否在作用域内
+ * @property {function(): Promise<string[]>} groupsInScope - 获取在作用域内的群
  */
 
 /**

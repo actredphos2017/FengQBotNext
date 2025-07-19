@@ -43,6 +43,11 @@ export default {
     },
     setup(api) {
 
+        const scope = api.defineGroupActionScope({
+            activateCmd: "激活每日一图",
+            deactivateCmd: "卸载每日一图"
+        });
+
         api.cmd(["看看图"], async (ch, param = undefined) => {
             try {
                 await ch.image(await getImage(param)).go();
@@ -54,50 +59,10 @@ export default {
             aiExpose: true
         });
 
-        api.cmd(["激活每日一图"], async (ch, groupId) => {
-            if (!groupId) {
-                if (ch.isGroup) {
-                    groupId = ch.groupId;
-                } else {
-                    await ch.text("请提供群号").go();
-                    return;
-                }
-            }
-            groupId = String(groupId);
-            const enabled_groups = await api.store.get(`enabled_groups`, []);
-            if (enabled_groups.includes(groupId)) {
-                await ch.text("该群已激活每日一图").go();
-            } else {
-                enabled_groups.push();
-                await api.store.set(`enabled_groups`, enabled_groups);
-                await ch.text(`已激活群 ${groupId} 的每日一图`).go();
-            }
-        });
-
-        api.cmd(["关闭每日一图"], async (ch, groupId) => {
-            if (!groupId) {
-                if (ch.isGroup) {
-                    groupId = ch.groupId;
-                } else {
-                    await ch.text("请提供群号").go();
-                    return;
-                }
-            }
-            groupId = String(groupId);
-            const enabled_groups = await api.store.get(`enabled_groups`, []);
-            if (enabled_groups.includes(groupId)) {
-                enabled_groups.splice(enabled_groups.indexOf(groupId), 1);
-                await api.store.set(`enabled_groups`, enabled_groups);
-                await ch.text(`已关闭群 ${groupId} 的每日一图`).go();
-            } else {
-                await ch.text("该群未激活每日一图").go();
-            }
-        });
-
         api.schedule.create("0 0 22 * * *", async () => {
             const bot = api.createBot();
             const image = await getImage("每日一图");
-            for (const groupId of await api.store.get(`enabled_groups`, [])) {
+            for (const groupId of await scope.groupsInScope()) {
                 bot.openGroup(groupId);
                 bot.text("今日的每日一图已发送，请各位群友及时查收~");
                 await bot.go();

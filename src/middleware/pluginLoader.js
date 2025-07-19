@@ -11,7 +11,7 @@ import schedule from 'node-schedule';
 import {getPluginStore, initStore, setPluginStore} from "../lib/store.js";
 
 import {fileToBase64} from "../utils/fileHelper.js";
-import { log } from "node:console";
+import {log} from "node:console";
 
 let qqBot = undefined;
 
@@ -113,7 +113,7 @@ const emptyQuickCommand = () => ({});
 let quickCommands = emptyQuickCommand();
 
 /**
- * @typedef {(ch: import("../types/plugins.js").ContextHelper | import("../types/plugins.js").BotHelper, arg: any?) => (boolean | Promise<boolean>)} SuperCommandFn
+ * @typedef {function(import("../types/plugins.js").ContextHelper | import("../types/plugins.js").BotHelper, any?): (boolean | Promise<boolean>)} SuperCommandFn
  */
 
 const emptySuperCommand = () => ({
@@ -384,6 +384,76 @@ async function loadPlugin(pluginDefine) {
             remove: (job) => {
                 logger.log(`已为插件 ${pluginId} 移除了定时任务`);
                 removeJob(pluginId, job);
+            }
+        },
+        defineGroupActionScope: (config = {}) => {
+            /**
+             * @type {import("../types/plugins.js").GroupActionScopeConfig}
+             */
+            const c = {
+                activateCmd: config.activateCmd ?? `激活${pluginId}`,
+                activateSuccessMsg: config.activateSuccessMsg ?? ((groupId) => `群 ${groupId} 已激活 ${pluginId}`),
+                activateRepeatedMsg: config.activateRepeatedMsg ?? ((groupId) => `群 ${groupId} 重复激活 ${pluginId}`),
+                activateQuickCommand: config.activateQuickCommand === undefined ? true : config.activateQuickCommand,
+
+                deactivateCmd: config.deactivateCmd ?? `解除${pluginId}`,
+                deactivateSuccessMsg: config.deactivateSuccessMsg ?? ((groupId) => `群 ${groupId} 已解除 ${pluginId}`),
+                deactivateRepeatedMsg: config.deactivateRepeatedMsg ?? ((groupId) => `群 ${groupId} 没有激活 ${pluginId}`),
+                deactivateQuickCommand: config.deactivateQuickCommand === undefined ? true : config.deactivateQuickCommand,
+
+                defaultEnabledGroups: config.defaultEnabledGroups ?? [],
+
+                unknownGroupMsg: config.unknownGroupMsg ?? `请给出群号`,
+            }
+
+            pluginAPI.cmd(c.activateCmd, async (ch, groupId) => {
+                if (groupId === undefined) {
+                    if (ch.isGroup) {
+                        groupId = ch.groupId.toString();
+                    } else {
+                        await ch.text(c.unknownGroupMsg).go();
+                        return;
+                    }
+                }
+
+                const groups = await pluginAPI.store.get("groups", c.defaultEnabledGroups);
+                if (groups.includes(groupId)) {
+                    await ch.text(c.activateRepeatedMsg).goAutoReply();
+                } else {
+                    groups.push(groupId);
+                    await pluginAPI.store.set("groups", groups);
+                    await ch.text(c.activateSuccessMsg).goAutoReply();
+                }
+            }, {quickCommandRegisterIgnore: !c.activateQuickCommand});
+
+            pluginAPI.cmd(c.deactivateCmd, async (ch, groupId) => {
+                if (groupId === undefined) {
+                    if (ch.isGroup) {
+                        groupId = ch.groupId.toString();
+                    } else {
+                        await ch.text(c.unknownGroupMsg).go();
+                        return;
+                    }
+                }
+
+                const groups = await pluginAPI.store.get("groups", c.defaultEnabledGroups);
+                if (groups.includes(groupId)) {
+                    groups.splice(groups.indexOf(groupId), 1);
+                    await pluginAPI.store.set("groups", groups);
+                    await ch.text(c.deactivateSuccessMsg).goAutoReply();
+                } else {
+                    await ch.text(c.deactivateRepeatedMsg).goAutoReply();
+                }
+            }, {quickCommandRegisterIgnore: !c.deactivateQuickCommand});
+
+            return {
+                async isInScope(ch) {
+                    const gs = await pluginAPI.store.get("groups", c.defaultEnabledGroups);
+                    return gs.includes(String(ch.group_id));
+                },
+                async groupsInScope() {
+                    return await pluginAPI.store.get("groups", c.defaultEnabledGroups);
+                }
             }
         }
     }
