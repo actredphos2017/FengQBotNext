@@ -11,7 +11,6 @@ import schedule from 'node-schedule';
 import {getPluginStore, initStore, setPluginStore} from "../lib/store.js";
 
 import {fileToBase64} from "../utils/fileHelper.js";
-import {log} from "node:console";
 
 let qqBot = undefined;
 
@@ -406,6 +405,15 @@ async function loadPlugin(pluginDefine) {
                 unknownGroupMsg: config.unknownGroupMsg ?? `请给出群号`,
             }
 
+            const defaultGroups = {};
+            for (const groupId of c.defaultEnabledGroups) {
+                defaultGroups[groupId] = {
+                    enable: true,
+                    groupId,
+                    store: {}
+                };
+            }
+
             pluginAPI.cmd(c.activateCmd, async (ch, groupId) => {
                 if (groupId === undefined) {
                     if (ch.isGroup) {
@@ -416,12 +424,16 @@ async function loadPlugin(pluginDefine) {
                     }
                 }
 
-                const groups = await pluginAPI.store.get("groups", c.defaultEnabledGroups);
-                if (groups.includes(groupId)) {
+                const groups = await pluginAPI.store.get("__groups", defaultGroups);
+                if (groups[groupId] && groups[groupId].enable) {
                     await ch.text(c.activateRepeatedMsg).goAutoReply();
                 } else {
-                    groups.push(groupId);
-                    await pluginAPI.store.set("groups", groups);
+                    groups[groupId] = {
+                        enable: true,
+                        groupId,
+                        store: {}
+                    };
+                    await pluginAPI.store.set("__groups", groups);
                     await ch.text(c.activateSuccessMsg).goAutoReply();
                 }
             }, {quickCommandRegisterIgnore: !c.activateQuickCommand});
@@ -436,10 +448,10 @@ async function loadPlugin(pluginDefine) {
                     }
                 }
 
-                const groups = await pluginAPI.store.get("groups", c.defaultEnabledGroups);
-                if (groups.includes(groupId)) {
-                    groups.splice(groups.indexOf(groupId), 1);
-                    await pluginAPI.store.set("groups", groups);
+                const groups = await pluginAPI.store.get("__groups", defaultGroups);
+                if (groups[groupId] && groups[groupId].enable) {
+                    groups[groupId].enable = false;
+                    await pluginAPI.store.set("__groups", groups);
                     await ch.text(c.deactivateSuccessMsg).goAutoReply();
                 } else {
                     await ch.text(c.deactivateRepeatedMsg).goAutoReply();
@@ -448,11 +460,41 @@ async function loadPlugin(pluginDefine) {
 
             return {
                 async isInScope(ch) {
-                    const gs = await pluginAPI.store.get("groups", c.defaultEnabledGroups);
-                    return gs.includes(String(ch.group_id));
+                    const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
+                    return gs[ch.groupId.toString()] && gs[ch.groupId.toString()].enable;
                 },
                 async groupsInScope() {
-                    return await pluginAPI.store.get("groups", c.defaultEnabledGroups);
+                    const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
+                    return Object.values(gs).filter((group) => group.enable);
+                },
+                store(ch) {
+                    if (!ch.isGroup) {
+                        throw new Error("非群组消息无法获取群组数据");
+                    }
+                    const groupId = ch.groupId.toString();
+                    return {
+                        async get(key, defaultValue) {
+                            const groups = await pluginAPI.store.get("__groups", defaultGroups);
+                            if (groups[groupId]) {
+                                return groups[groupId].store[key] ?? defaultValue;
+                            } else {
+                                return defaultValue;
+                            }
+                        },
+                        async set(key, value) {
+                            const groups = await pluginAPI.store.get("__groups", defaultGroups);
+                            if (groups[groupId]) {
+                                groups[groupId].store[key] = value;
+                            } else {
+                                groups[groupId] = {
+                                    enable: false,
+                                    groupId,
+                                    store: {[key]: value}
+                                };
+                            }
+                            await pluginAPI.store.set("__groups", groups);
+                        }
+                    }
                 }
             }
         }

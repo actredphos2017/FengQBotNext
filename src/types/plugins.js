@@ -95,7 +95,7 @@
  */
 
 /**
- * @typedef {Object} PluginAPIStore
+ * @typedef {Object} IStore
  * @property {StoreGetFn} get 获取插件数据
  * @property {StoreSetFn} set 设置插件数据
  */
@@ -131,7 +131,7 @@
  * @property {function(...any): void} log - 日志记录器
  * @property {function(): Promise<string | undefined>} getStore - 获取插件持久化数据（已弃用，使用 store 代替）
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
- * @property {PluginAPIStore} store - 更好的持久化数据（插件间隔离）访问方法
+ * @property {IStore} store - 更好的持久化数据（插件间隔离）访问方法
  * @property {PluginAPISchedule} schedule - 定时任务
  * @property {function(GroupActionScopeConfig | undefined): GroupActionScope} defineGroupActionScope - 定义插件的群组作用域（语法糖）
  */
@@ -155,9 +155,17 @@
  */
 
 /**
+ * @typedef {Object} GroupActionScopeEntity
+ * @property {string} groupId - 群组 ID
+ * @property {boolean} enable - 是否启用
+ * @property {Object} store - 群组数据存储
+ */
+
+/**
  * @typedef {Object} GroupActionScope
  * @property {function(ch: ContextHelper): Promise<boolean>} isInScope - 检查当前消息是否在作用域内
- * @property {function(): Promise<string[]>} groupsInScope - 获取在作用域内的群
+ * @property {function(): Promise<GroupActionScopeEntity[]>} groupsInScope - 获取在作用域内的群
+ * @property {function(ch: ContextHelper): IStore} store - 作用域群组的独立数据存储
  */
 
 /**
