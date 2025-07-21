@@ -145,7 +145,7 @@ async function loadPlugins(hard = false) {
             if (file.endsWith('.js')) {
                 const pluginPath = path.join(pluginsDir, file);
                 try {
-                    logger.log(`尝试加载插件: ${pluginPath}`);
+                    logger.log(`命中插件: ${pluginPath}`);
                     const module = await import(`file://${pluginPath}?t=${Date.now()}`);
                     const pluginInstance = module.default;
                     const currentMD5 = crypto.createHash('md5').update(await fsPromises.readFile(pluginPath)).digest('hex');
@@ -169,15 +169,18 @@ async function loadPlugins(hard = false) {
                         superCommands: []
                     }
 
-                    logger.log(`插件 ${pluginInstance.config.id} 将被加载`);
+                    logger.log(`插件 ${pluginInstance.config.id} 已加入加载队列`);
                 } catch (error) {
                     logger.error(`加载插件 ${file} 时出错:`, error);
                 }
             }
         }
     } catch (error) {
-        logger.error('加载插件目录失败:', error);
+        logger.error('💀加载插件目录时发生了错误:', error);
+        return;
     }
+
+    logger.log(`😎🎉预加载已完成，共计${Object.entries(plugins).length}个插件`);
 
     /**
      * @type {import("../types/plugins.js").PluginDefine[]}
@@ -196,19 +199,19 @@ async function loadPlugins(hard = false) {
             try {
                 clearJobs(plugin.instance.config.id);
                 if (plugin.instance.config.disabled) {
-                    logger.log(`插件 ${plugin.instance.config.id} 已禁用，已跳过`);
+                    logger.log(`👎插件 ${plugin.instance.config.id} 已禁用，跳过加载`);
                     continue;
                 }
                 await loadPlugin(plugin);
                 if (plugin.rejected) {
-                    logger.log(`插件 ${plugin.instance.config.id} 拒绝加载`);
+                    logger.log(`😒插件 ${plugin.instance.config.id} 拒绝加载`);
                     continue;
                 }
                 plugin.loaded = true;
-                logger.log(`插件 ${plugin.instance.config.id} 已成功加载`);
+                logger.log(`👌插件 ${plugin.instance.config.id} 已成功加载`);
             } catch (error) {
                 plugin.error = true;
-                logger.error(`加载插件 ${plugin.instance.config.id} 时出错:`, error);
+                logger.error(`💀加载插件 ${plugin.instance.config.id} 时出错:`, error);
             }
         }
 
@@ -219,6 +222,8 @@ async function loadPlugins(hard = false) {
         }
     }
 
+    logger.log(`😎🎉插件初始化已完成，共计${Object.values(plugins).filter(e => e.loaded && !e.rejected).length}个插件`);
+
     for (const plugin of pluginList.reverse()) {
         if (plugin.loaded && !plugin.rejected) {
             for (const command of plugin.commands) {
@@ -228,7 +233,7 @@ async function loadPlugins(hard = false) {
                 const helpTriggers = [];
                 for (const trigger of command.trigger) {
                     if (quickCommands[trigger] && quickCommands[trigger].pluginId !== plugin.instance.config.id) {
-                        logger.error(`为插件 ${plugin.instance.config.id} 注册快捷命令 ${trigger} 时出错：同名命令已被插件 ${quickCommands[trigger].pluginId} 注册`);
+                        logger.error(`🤦‍♂️为插件 ${plugin.instance.config.id} 注册快捷命令 ${trigger} 时出错：同名命令已被插件 ${quickCommands[trigger].pluginId} 注册`);
                         continue;
                     }
                     quickCommands[trigger] = {
@@ -249,6 +254,8 @@ async function loadPlugins(hard = false) {
             }
         }
     }
+
+    logger.log(`😎🎉插件快捷命令注册已完成，共计${Object.entries(quickCommands).length}个快捷命令`);
 }
 
 /**
@@ -297,14 +304,15 @@ async function loadPlugin(pluginDefine) {
                 if (plugin) {
                     return plugin.api;
                 } else {
-                    logger.error(`插件 ${pluginId} 试图寻找 ${prop} 但未找到`);
+                    logger.error(`🤦‍♂️插件 ${pluginId} 试图寻找 ${prop} 但未找到`);
                     return undefined;
                 }
             }
         }),
         cmd: (trigger, fn, config = {}) => {
             trigger = Array.isArray(trigger) ? trigger : [trigger];
-            logger.log(`插件 ${pluginId} 注册了命令: `, ...trigger);
+            logger.log(`插件 ${pluginId} 注册了命令: `, trigger.map(e => `"${e}"`).join(", "));
+            logger.warn
             pluginDefine.commands.push({
                 trigger,
                 fn,
@@ -314,10 +322,10 @@ async function loadPlugin(pluginDefine) {
         super: (fn, config) => {
             const time = config?.time ?? "afterActivate";
             if (typeof time === "string" && !Object.keys(superCommands).includes(time)) {
-                logger.error(`插件 ${pluginId} 试图注册超级命令，但时机 ${time} 不存在`);
+                logger.error(`🤦‍♂️插件 ${pluginId} 试图注册超级命令，但时机 ${time} 不存在`);
                 return;
             }
-            logger.log(`插件 ${pluginId} 在 ${time} 时机注册了超级命令`);
+            logger.log(`插件 ${pluginId} 注册了 ${time} 时机的超级命令`);
             pluginDefine.superCommands.push({time, fn});
         },
         assert: (pluginId) => {
@@ -329,7 +337,7 @@ async function loadPlugin(pluginDefine) {
             }
         },
         reject: (reason) => {
-            logger.error(`插件 ${pluginId} 拒绝加载: ${reason}`);
+            logger.error(`🤬插件 ${pluginId} 加载时自己遇到了问题: ${reason}`);
             pluginDefine.rejected = true;
         },
         getStore: async () => {
@@ -377,11 +385,11 @@ async function loadPlugin(pluginDefine) {
         },
         schedule: {
             create: (cron, fn) => {
-                logger.log(`已为插件 ${pluginId} 注册了定时任务，执行时间 ${cron}`);
+                logger.log(`插件 ${pluginId} 注册了定时任务，执行时间 ${cron}`);
                 return createJob(pluginId, cron, fn);
             },
             remove: (job) => {
-                logger.log(`已为插件 ${pluginId} 移除了定时任务`);
+                logger.log(`插件 ${pluginId} 移除了定时任务`);
                 removeJob(pluginId, job);
             }
         },
@@ -955,12 +963,13 @@ export function pluginLoader(_config = {}) {
     return [
         {
             type: "middleware",
-            value: defineMiddleware("afterInit", (obj) => {
+            value: defineMiddleware("afterInit", async (obj) => {
                 if (obj.qqBot) {
                     qqBot = obj.qqBot;
-                    loadPlugins();
+                    await loadPlugins();
+                    logger.log("😎🎉🎉🎉插件加载已全部完成")
                 } else {
-                    logger.error("未找到QQ机器人实例");
+                    logger.error("🤬未找到QQ机器人实例");
                 }
                 return obj;
             })
@@ -970,7 +979,6 @@ export function pluginLoader(_config = {}) {
             value: {
                 event: "NAPCAT_MESSAGE",
                 handler: async ({context}) => {
-                    logger.log("收到消息：", JSON.stringify(context.message));
                     await runCommand(context, undefined, true);
                 }
             }
