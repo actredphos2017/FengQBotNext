@@ -425,7 +425,7 @@ async function loadPlugin(pluginDefine) {
             pluginAPI.cmd(c.activateCmd, async (ch, groupId) => {
                 if (groupId === undefined) {
                     if (ch.isGroup) {
-                        groupId = ch.groupId.toString();
+                        groupId = String(ch.groupId);
                     } else {
                         await ch.text(c.unknownGroupMsg).go();
                         return;
@@ -449,7 +449,7 @@ async function loadPlugin(pluginDefine) {
             pluginAPI.cmd(c.deactivateCmd, async (ch, groupId) => {
                 if (groupId === undefined) {
                     if (ch.isGroup) {
-                        groupId = ch.groupId.toString();
+                        groupId = String(ch.groupId);
                     } else {
                         await ch.text(c.unknownGroupMsg).go();
                         return;
@@ -469,7 +469,7 @@ async function loadPlugin(pluginDefine) {
             return {
                 async isInScope(ch) {
                     const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
-                    return gs[ch.groupId.toString()] && gs[ch.groupId.toString()].enable;
+                    return gs[String(ch.groupId)] && gs[String(ch.groupId)].enable;
                 },
                 async groupsInScope() {
                     const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
@@ -479,7 +479,7 @@ async function loadPlugin(pluginDefine) {
                     if (!ch.isGroup) {
                         throw new Error("非群组消息无法获取群组数据");
                     }
-                    const groupId = ch.groupId.toString();
+                    const groupId = String(ch.groupId);
                     return {
                         async get(key, defaultValue) {
                             const groups = await pluginAPI.store.get("__groups", defaultGroups);
