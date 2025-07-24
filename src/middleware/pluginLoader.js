@@ -411,6 +411,8 @@ async function loadPlugin(pluginDefine) {
                 defaultEnabledGroups: config.defaultEnabledGroups ?? [],
 
                 unknownGroupMsg: config.unknownGroupMsg ?? `请给出群号`,
+
+                needAdmin: typeof config.needAdmin === "boolean" ? config.needAdmin : true
             }
 
             const defaultGroups = {};
@@ -423,11 +425,17 @@ async function loadPlugin(pluginDefine) {
             }
 
             pluginAPI.cmd(c.activateCmd, async (ch, groupId) => {
+
+                if (c.needAdmin && !(await pluginAPI.outside.util.hasPermission(ch))) {
+                    await ch.text("此操作需要管理员权限").goAutoReply();
+                    return;
+                }
+
                 if (groupId === undefined) {
                     if (ch.isGroup) {
                         groupId = String(ch.groupId);
                     } else {
-                        await ch.text(c.unknownGroupMsg).go();
+                        await ch.text(c.unknownGroupMsg).goAutoReply();
                         return;
                     }
                 }
@@ -447,11 +455,17 @@ async function loadPlugin(pluginDefine) {
             }, {quickCommandRegisterIgnore: !c.activateQuickCommand});
 
             pluginAPI.cmd(c.deactivateCmd, async (ch, groupId) => {
+
+                if (c.needAdmin && !(await pluginAPI.outside.util.hasPermission(ch))) {
+                    await ch.text("此操作需要管理员权限").goAutoReply();
+                    return;
+                }
+
                 if (groupId === undefined) {
                     if (ch.isGroup) {
                         groupId = String(ch.groupId);
                     } else {
-                        await ch.text(c.unknownGroupMsg).go();
+                        await ch.text(c.unknownGroupMsg).goAutoReply();
                         return;
                     }
                 }

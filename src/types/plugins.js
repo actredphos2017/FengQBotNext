@@ -133,7 +133,7 @@
  * @property {function(string): Promise<void>} setStore - 设置插件持久化数据（已弃用，使用 store 代替）
  * @property {IStore} store - 更好的持久化数据（插件间隔离）访问方法
  * @property {PluginAPISchedule} schedule - 定时任务
- * @property {function(GroupActionScopeConfig | undefined): GroupActionScope} defineGroupActionScope - 定义插件的群组作用域（语法糖）
+ * @property {function(GroupActionScopeConfig | undefined): GroupActionScope} defineGroupActionScope - 定义插件的群组作用域（实用工具）
  */
 
 /**
@@ -152,6 +152,8 @@
  * @property {string | undefined} unknownGroupMsg - 未知群组提示
  *
  * @property {string[] | undefined} defaultEnabledGroups - 默认启用的群组列表
+ * 
+ * @property {boolean | undefined} needAdmin - 是否需要管理员权限
  */
 
 /**

@@ -20,7 +20,7 @@ export default {
         api.super(async (ch) => {
             if (await scope.isInScope(ch)) {
                 if (Math.random() < 0.008) {
-                    await api.outside["economy"].addMoney(ch.userId.toString(), 10);
+                    await api.outside["economy"].addMoney(String(ch.userId), 10);
                     await ch.text("随机事件触发！获得 10 枫林大肥皂币").goAutoReply();
                 }
             }
