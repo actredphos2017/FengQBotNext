@@ -49,13 +49,13 @@
  * @property {(emojiId: string, set: boolean) => Promise<void>} setEmojiResponse - 设置表情响应
  * @property {(...args: any[]) => any} quick_action - 快速操作方法
  * @property {(...args: any[]) => any} quickAction - 快速操作方法（驼峰命名接口）
- * @property {(text: string) => ContextHelper} text - 设置文本内容并返回上下文助手实例
- * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => ContextHelper} image - 设置图片内容并返回上下文助手实例
- * @property {(path: string, filename: string) => BotHelper} file - 设置文件内容并返回上下文助手实例
- * @property {(who?: number) => ContextHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用），默认艾特消息发送者
- * @property {(instance?: any) => ContextHelper} face - 设置表情并返回上下文助手实例
- * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
- * @property {() => Promise<void>} goAutoReply - 执行自动回复操作并返回一个 Promise
+ * @property {(text: string) => ContextHelper} text - 输入文本内容
+ * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => ContextHelper} image - 输入图片内容
+ * @property {(path: string, filename: string) => BotHelper} file - 输入文件内容
+ * @property {(who?: number) => ContextHelper} at - 输入艾特指定用户并返回上下文助手实例（仅群消息可用），默认艾特消息发送者
+ * @property {(instance?: any) => ContextHelper} face - 输入表情并返回上下文助手实例
+ * @property {() => Promise<void>} go - 发送并返回一个 Promise
+ * @property {() => Promise<void>} goAutoReply - 自动回复并返回一个 Promise
  * @property {(onlyText: boolean = true) => string | undefined} getPureMessage - 当获得的消息为纯文本时，返回文本对象。onlyText 为 true 时，当消息包含艾特、图片、表情、文件等信息时，会返回 undefined
  * @property {(parts: string | string[]) => Promise<void>} redirect - 重定向到新的命令（重定向不会激活新命令生命周期的超级命令）
  * @property {boolean} isGroup - 是否为群组消息

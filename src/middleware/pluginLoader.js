@@ -53,7 +53,7 @@ function createJob(pluginId, cron, fn) {
         try {
             await fn();
         } catch (e) {
-            logger.error(`插件 ${pluginId} 的定时任务 ${cron} 执行失败:`, e);
+            logger.error(`插件 ${pluginId} 在 ${cron} 时的定时任务执行失败:`, e);
         }
     });
     if (!jobs[pluginId]) {
@@ -442,7 +442,7 @@ async function loadPlugin(pluginDefine) {
 
                 const groups = await pluginAPI.store.get("__groups", defaultGroups);
                 if (groups[groupId] && groups[groupId].enable) {
-                    await ch.text(c.activateRepeatedMsg).goAutoReply();
+                    await ch.text(c.activateRepeatedMsg(groupId)).goAutoReply();
                 } else {
                     groups[groupId] = {
                         enable: true,
@@ -450,7 +450,7 @@ async function loadPlugin(pluginDefine) {
                         store: {}
                     };
                     await pluginAPI.store.set("__groups", groups);
-                    await ch.text(c.activateSuccessMsg).goAutoReply();
+                    await ch.text(c.activateSuccessMsg(groupId)).goAutoReply();
                 }
             }, {quickCommandRegisterIgnore: !c.activateQuickCommand});
 
@@ -474,9 +474,9 @@ async function loadPlugin(pluginDefine) {
                 if (groups[groupId] && groups[groupId].enable) {
                     groups[groupId].enable = false;
                     await pluginAPI.store.set("__groups", groups);
-                    await ch.text(c.deactivateSuccessMsg).goAutoReply();
+                    await ch.text(c.deactivateSuccessMsg(groupId)).goAutoReply();
                 } else {
-                    await ch.text(c.deactivateRepeatedMsg).goAutoReply();
+                    await ch.text(c.deactivateRepeatedMsg(groupId)).goAutoReply();
                 }
             }, {quickCommandRegisterIgnore: !c.deactivateQuickCommand});
 

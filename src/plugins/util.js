@@ -13,7 +13,7 @@ export default {
     author: "Sakulin",
     version: "1.0.0",
     level: "core",
-    hideInHelpPage: true,
+    hideInHelpPage: true
   },
   setup(api) {
 
