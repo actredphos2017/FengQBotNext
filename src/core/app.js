@@ -1,5 +1,5 @@
 import pipe from "./pipe.js";
-import { setLogger, logger } from "./logger.js";
+import log4js from "log4js";
 
 /**
  * @typedef {{
@@ -7,10 +7,12 @@ import { setLogger, logger } from "./logger.js";
  *     middleware: (mw: (import("./middleware.js").Middleware) | import("./middleware.js").Middleware[]) => AppInstance,
  *     mount: (obj: Mountable) => Promise<AppInstance>;
  *     trigger: (trigger: import("./pipe.js").EventTrigger) => AppInstance;
- *     logger: (logger: import("./logger.js").Logger) => AppInstance;
+ *     logger: (logger: import("log4js").Configuration) => AppInstance;
  *     use: (items: any) => AppInstance;
  * }} AppInstance
  */
+
+const logger = log4js.getLogger("APP_MAIN");
 
 /**
  * @returns {AppInstance}
@@ -33,10 +35,6 @@ function createApp() {
                 }
             }
         },
-        logger(logger) {
-            this.instance.logger = logger;
-            return this;
-        },
         trigger(trigger) {
             this.instance.triggers.push(trigger);
             return this;
@@ -57,8 +55,6 @@ function createApp() {
             return this;
         },
         async mount(obj) {
-
-            setLogger(this.instance.logger);
 
             const middlewareCount = Object.values(this.instance.middlewares).reduce((sum, handlers) => sum + handlers.length, 0);
             logger.log(`已启用的中间件 ${middlewareCount} 个`);

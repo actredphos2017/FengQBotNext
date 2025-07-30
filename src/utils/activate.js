@@ -1,3 +1,8 @@
+
+/**
+ * @param {string} botQQId
+ * @returns {((context: Context) => (string[] | undefined))}
+ */
 export function atMessageActivate(botQQId) {
     return (context) => {
         let message = undefined;
@@ -27,3 +32,4 @@ export function atMessageActivate(botQQId) {
         return parts;
     }
 }
+

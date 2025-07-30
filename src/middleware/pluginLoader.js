@@ -1,16 +1,18 @@
-import {defineMiddleware} from "../core/middleware.js";
+import { defineMiddleware } from "../core/middleware.js";
 import path from "path";
 import crypto from 'crypto';
-import {promises as fsPromises} from 'fs';
-import {fileURLToPath} from "node:url";
+import { promises as fsPromises } from 'fs';
+import { fileURLToPath } from "node:url";
 import pipe from "../core/pipe.js";
-import {getLoadLevel} from "../types/plugins.js";
-import {logger} from "../core/logger.js";
-import {faceMap, getFace} from "../lib/faces.js";
+import { getLoadLevel } from "../types/plugins.js";
+import { faceMap, getFace } from "../lib/faces.js";
 import schedule from 'node-schedule';
-import {getPluginStore, initStore, setPluginStore} from "../lib/store.js";
+import { getPluginStore, initStore, setPluginStore } from "../lib/store.js";
+import log4js from "log4js";
 
-import {fileToBase64} from "../utils/fileHelper.js";
+const logger = log4js.getLogger("PLUGIN_LOADER");
+
+import { fileToBase64 } from "../utils/fileHelper.js";
 
 let qqBot = undefined;
 
@@ -199,12 +201,12 @@ async function loadPlugins(hard = false) {
             try {
                 clearJobs(plugin.instance.config.id);
                 if (plugin.instance.config.disabled) {
-                    logger.log(`👎插件 ${plugin.instance.config.id} 已禁用，跳过加载`);
+                    logger.warn(`👎插件 ${plugin.instance.config.id} 已禁用，跳过加载`);
                     continue;
                 }
                 await loadPlugin(plugin);
                 if (plugin.rejected) {
-                    logger.log(`😒插件 ${plugin.instance.config.id} 拒绝加载`);
+                    logger.warn(`😒插件 ${plugin.instance.config.id} 拒绝加载`);
                     continue;
                 }
                 plugin.loaded = true;
@@ -282,7 +284,7 @@ async function loadPlugin(pluginDefine) {
             await pipe.emit(event, data);
         },
         expose: (api) => {
-            pluginDefine.api = {...(pluginDefine.api ?? {}), ...api};
+            pluginDefine.api = { ...(pluginDefine.api ?? {}), ...api };
         },
         createBot: () => {
             const bh = botHelper(async (message) => {
@@ -326,7 +328,7 @@ async function loadPlugin(pluginDefine) {
                 return;
             }
             logger.log(`插件 ${pluginId} 注册了 ${time} 时机的超级命令`);
-            pluginDefine.superCommands.push({time, fn});
+            pluginDefine.superCommands.push({ time, fn });
         },
         assert: (pluginId) => {
             const plugin = plugins[pluginId];
@@ -367,18 +369,18 @@ async function loadPlugin(pluginDefine) {
             async set(key, value) {
                 const target = await getPluginStore(pluginId);
                 if (!target) {
-                    await setPluginStore(pluginId, JSON.stringify({[key]: value}));
+                    await setPluginStore(pluginId, JSON.stringify({ [key]: value }));
                 } else {
                     try {
                         const res = JSON.parse(target);
                         if (!res) {
-                            await setPluginStore(pluginId, JSON.stringify({[key]: value}));
+                            await setPluginStore(pluginId, JSON.stringify({ [key]: value }));
                         } else {
                             res[key] = value;
                             await setPluginStore(pluginId, JSON.stringify(res));
                         }
                     } catch (e) {
-                        await setPluginStore(pluginId, JSON.stringify({[key]: value}));
+                        await setPluginStore(pluginId, JSON.stringify({ [key]: value }));
                     }
                 }
             }
@@ -452,7 +454,7 @@ async function loadPlugin(pluginDefine) {
                     await pluginAPI.store.set("__groups", groups);
                     await ch.text(c.activateSuccessMsg(groupId)).goAutoReply();
                 }
-            }, {quickCommandRegisterIgnore: !c.activateQuickCommand});
+            }, { quickCommandRegisterIgnore: !c.activateQuickCommand });
 
             pluginAPI.cmd(c.deactivateCmd, async (ch, groupId) => {
 
@@ -478,7 +480,7 @@ async function loadPlugin(pluginDefine) {
                 } else {
                     await ch.text(c.deactivateRepeatedMsg(groupId)).goAutoReply();
                 }
-            }, {quickCommandRegisterIgnore: !c.deactivateQuickCommand});
+            }, { quickCommandRegisterIgnore: !c.deactivateQuickCommand });
 
             return {
                 async isInScope(ch) {
@@ -511,7 +513,7 @@ async function loadPlugin(pluginDefine) {
                                 groups[groupId] = {
                                     enable: false,
                                     groupId,
-                                    store: {[key]: value}
+                                    store: { [key]: value }
                                 };
                             }
                             await pluginAPI.store.set("__groups", groups);
@@ -519,35 +521,15 @@ async function loadPlugin(pluginDefine) {
                     }
                 }
             }
-        }
-    }
-
-    const withPrefix = (args) => {
-        return [`[${pluginDefine.instance.config.id}]`, ...args];
-    }
-
-    pluginAPI.log = function (...args) {
-        logger.log(...withPrefix(args));
-    }
-
-    pluginAPI.log.error = function (...args) {
-        logger.error(...withPrefix(args));
-    }
-
-    pluginAPI.log.log = function (...args) {
-        logger.log(...withPrefix(args));
-    }
-
-    pluginAPI.log.warn = function (...args) {
-        logger.warn(...withPrefix(args));
-    }
-
-    pluginAPI.log.debug = function (...args) {
-        logger.debug(...withPrefix(args));
-    }
-
-    pluginAPI.log.info = function (...args) {
-        logger.info(...withPrefix(args));
+        },
+        log: new Proxy(log4js.getLogger(pluginDefine.instance.config.id), {
+            get(target, param, receiver) {
+                return Reflect.get(target, param, receiver);
+            },
+            apply(target, _, args) {
+                return target.log(...args)
+            }
+        })
     }
 
     await pluginDefine.instance.setup(pluginAPI);
@@ -561,7 +543,7 @@ async function buildMessage(requestBuffer) {
     const message = [];
     for (const item of requestBuffer) {
         if (item.type === "text") {
-            message.push({type: "text", data: {text: String(item.data.text)}});
+            message.push({ type: "text", data: { text: String(item.data.text) } });
         } else if (item.type === "image") {
             let image = item.data.image;
             const name = item.data.name;
@@ -585,18 +567,18 @@ async function buildMessage(requestBuffer) {
 
             message.push({
                 type: "image",
-                data: {file: image, name}
+                data: { file: image, name }
             });
         } else if (item.type === "at") {
-            message.push({type: "at", data: {qq: item.data.who}});
-            message.push({type: "text", data: {text: " "}});
+            message.push({ type: "at", data: { qq: item.data.who } });
+            message.push({ type: "text", data: { text: " " } });
         } else if (item.type === "reply") {
-            message.push({type: "reply", data: {id: item.data.id}});
+            message.push({ type: "reply", data: { id: item.data.id } });
         } else if (item.type === "file") {
             let fileBase64 = await fileToBase64(item.data.path);
             if (!fileBase64.startsWith("base64://"))
                 fileBase64 = `base64://${fileBase64}`;
-            message.push({type: "file", data: {file: fileBase64, name: item.data.filename}});
+            message.push({ type: "file", data: { file: fileBase64, name: item.data.filename } });
         } else if (item.type === "instance") {
             message.push(item.data.instance);
         }
@@ -644,20 +626,20 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
             return ctx.quick_action(...args);
         },
         text(text) {
-            requestBuffer.push({type: "text", data: {text}});
+            requestBuffer.push({ type: "text", data: { text } });
             return this;
         },
         image(image, name = undefined) {
-            requestBuffer.push({type: "image", data: {image, name}});
+            requestBuffer.push({ type: "image", data: { image, name } });
             return this;
         },
         file(path, filename) {
-            requestBuffer.push({type: "file", data: {path, filename}});
+            requestBuffer.push({ type: "file", data: { path, filename } });
             return this;
         },
         at(who = ctx.user_id) {
             if (this.isGroup)
-                requestBuffer.push({type: "at", data: {who}});
+                requestBuffer.push({ type: "at", data: { who } });
             return this;
         },
         face(instance) {
@@ -667,7 +649,7 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
                     instance = faceInstance;
                 }
             }
-            requestBuffer.push({type: "instance", data: {instance}});
+            requestBuffer.push({ type: "instance", data: { instance } });
             return this;
         },
         async go() {
@@ -698,7 +680,7 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
                 return;
             }
             if (this.isGroup) {
-                requestBuffer = [{type: "reply", data: {id: ctx.message_id}}, ...requestBuffer];
+                requestBuffer = [{ type: "reply", data: { id: ctx.message_id } }, ...requestBuffer];
             }
             return await this.go();
         },
@@ -783,20 +765,20 @@ function botHelper(onGoSuperFn = undefined) {
             return this;
         },
         text(text) {
-            requestBuffer.push({type: "text", data: {text}});
+            requestBuffer.push({ type: "text", data: { text } });
             return this;
         },
         image(image, name = undefined) {
-            requestBuffer.push({type: "image", data: {image, name}});
+            requestBuffer.push({ type: "image", data: { image, name } });
             return this;
         },
         file(path, filename) {
-            requestBuffer.push({type: "file", data: {path, filename}});
+            requestBuffer.push({ type: "file", data: { path, filename } });
             return this;
         },
         at(who) {
             if (virtualContext.isGroup)
-                requestBuffer.push({type: "at", data: {who}});
+                requestBuffer.push({ type: "at", data: { who } });
             return this;
         },
         face(instance) {
@@ -806,7 +788,7 @@ function botHelper(onGoSuperFn = undefined) {
                     instance = faceInstance;
                 }
             }
-            requestBuffer.push({type: "instance", data: {instance}});
+            requestBuffer.push({ type: "instance", data: { instance } });
             return this;
         },
         async go() {
@@ -992,7 +974,7 @@ export function pluginLoader(_config = {}) {
             type: "trigger",
             value: {
                 event: "NAPCAT_MESSAGE",
-                handler: async ({context}) => {
+                handler: async ({ context }) => {
                     await runCommand(context, undefined, true);
                 }
             }

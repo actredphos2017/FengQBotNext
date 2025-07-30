@@ -1,6 +1,8 @@
 import { NCWebsocket } from 'node-napcat-ts'
 import { Botconfig as config } from './config.js'
-import { logger } from '../core/logger.js';
+import log4js from "log4js"
+
+const logger = log4js.getLogger("NAPCAT");
 
 /**
  * @type {Mountable}
@@ -39,7 +41,7 @@ const obj = {
         await qqBot.connect();
         logger.log("连接成功！");
         qqBot.on('message', (context) => {
-            onEvent("NAPCAT_MESSAGE", {context});
+            onEvent("NAPCAT_MESSAGE", { context });
         });
         obj.qqBot = qqBot;
     }
