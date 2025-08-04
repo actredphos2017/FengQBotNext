@@ -522,14 +522,8 @@ async function loadPlugin(pluginDefine) {
                 }
             }
         },
-        log: new Proxy(log4js.getLogger(pluginDefine.instance.config.id), {
-            get(target, param, receiver) {
-                return Reflect.get(target, param, receiver);
-            },
-            apply(target, _, args) {
-                return target.log(...args)
-            }
-        })
+        log: log4js.getLogger(pluginDefine.instance.config.id).log,
+        logger: log4js.getLogger(pluginDefine.instance.config.id)
     }
 
     await pluginDefine.instance.setup(pluginAPI);

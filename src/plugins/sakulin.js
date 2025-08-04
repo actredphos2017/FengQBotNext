@@ -265,7 +265,7 @@ export default {
                     await ch.redirect(responseObject.call);
                 }
             } catch (e) {
-                api.log.error(e);
+                api.logger.error(e);
             } finally {
                 chatLock[ch.groupId] = false;
             }
@@ -338,11 +338,11 @@ export default {
                     }
                 } catch (e) {
                     api.log(`[AI智能回复] 我选择保持沉默！`);
-                    api.log.error(e);
+                    api.logger.error(e);
                     return true;
                 }
             } catch (e) {
-                api.log.error(e);
+                api.logger.error(e);
             } finally {
                 chatLock[ch.groupId] = false;
             }
