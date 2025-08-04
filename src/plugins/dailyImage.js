@@ -59,16 +59,21 @@ export default {
             aiExpose: true
         });
 
-        api.schedule.create("0 0 22 * * *", async () => {
-            const bot = api.createBot();
-            const image = await getImage("每日一图");
-            for (const groupId of await scope.groupsInScope()) {
-                bot.openGroup(groupId);
-                bot.text("今日的每日一图已发送，请各位群友及时查收~");
-                await bot.go();
-                bot.image(image);
-                await bot.go();
+        const putDailyImage = async () => {
+            const enabledGroups = await scope.groupsInScope();
+            if (enabledGroups.length) {
+                const bot = api.createBot();
+                const image = await getImage("每日一图");
+                for (const { groupId } of enabledGroups) {
+                    bot.openGroup(groupId);
+                    bot.text("今日的每日一图已发送，请各位群友及时查收~");
+                    await bot.go();
+                    bot.image(image);
+                    await bot.go();
+                }
             }
-        });
+        };
+
+        api.schedule.create("0 0 22 * * *", putDailyImage);
     }
 }

@@ -12,13 +12,13 @@ export default {
         hideInHelpPage: true
     },
     setup(api) {
-        if (!api.assert("util")) {
-            api.reject("缺少util插件");
+        if (!api.assert("core")) {
+            api.reject("缺少core插件");
             return;
         }
 
         api.cmd("r", async (ch) => {
-            ch.redirect(["$util", "reload"]);
+            ch.redirect(["$core", "reload"]);
         });
     }
 }
