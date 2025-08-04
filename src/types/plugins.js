@@ -10,6 +10,7 @@
  * @typedef {Object} PluginDefine
  * @property {PluginInfo} instance - 插件实例
  * @property {boolean} loaded - 插件是否已加载
+ * @property {PluginAPI} pluginAPI - 插件接口实例
  * @property {string} hash - 插件文件的 MD5 哈希值
  * @property {boolean} error - 插件加载是否出错
  * @property {PluginInterface | undefined} api - 插件暴露的接口
@@ -52,6 +53,7 @@
  * @property {(text: string) => ContextHelper} text - 输入文本内容
  * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => ContextHelper} image - 输入图片内容
  * @property {(path: string, filename: string) => BotHelper} file - 输入文件内容
+ * @property {(text: string, filename: string) => BotHelper} textfile - 输入文本文件内容
  * @property {(who?: number) => ContextHelper} at - 输入艾特指定用户并返回上下文助手实例（仅群消息可用），默认艾特消息发送者
  * @property {(instance?: any) => ContextHelper} face - 输入表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 发送并返回一个 Promise
@@ -75,6 +77,7 @@
  * @property {(text: string) => BotHelper} text - 设置文本内容并返回上下文助手实例
  * @property {(image: string | Blob | Buffer | Uint8Array, name?: string) => BotHelper} image - 设置图片内容并返回上下文助手实例
  * @property {(path: string, filename: string) => BotHelper} file - 设置文件内容并返回上下文助手实例
+ * @property {(text: string, filename: string) => BotHelper} textfile - 输入文本文件内容
  * @property {(who: number) => BotHelper} at - 艾特指定用户并返回上下文助手实例（仅群消息可用）
  * @property {(instance?: any) => BotHelper} face - 设置表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 执行操作并返回一个 Promise
@@ -96,8 +99,8 @@
 
 /**
  * @typedef {Object} IStore
- * @property {StoreGetFn} get 获取插件数据
- * @property {StoreSetFn} set 设置插件数据
+ * @property {(key: string, defaultValue: any) => Promise<any>} get 获取插件数据
+ * @property {(key: string, value: any) => Promise<void>} set 设置插件数据
  */
 
 /**

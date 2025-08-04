@@ -100,6 +100,23 @@ export default {
       }).join("\n")).goAutoReply();
     });
 
+    api.cmd(["查询群组作用域", "queryScope"], async (ch, pluginId) => {
+      if (
+        !Object.entries(api.outside.__plugins)
+          .filter(([_, it]) => it.loaded)
+          .map(([id, _]) => id)
+          .includes(pluginId)
+      ) await ch.text(`未知或未加载的插件ID: ${pluginId}`).goAutoReply();
+
+      /**
+       * @type {import("../types/plugins.js").PluginDefine}
+       */
+      const targetPluginDefine = api.outside.__plugins[pluginId];
+      const enabledGroups = await targetPluginDefine.pluginAPI.store.get("__groups", {});
+
+      await ch.textfile(JSON.stringify(enabledGroups), `插件${pluginId}的作用域信息.json`).go();
+    });
+
     api.expose({
       hasPermission,
       getOpList

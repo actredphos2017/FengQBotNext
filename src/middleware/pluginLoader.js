@@ -165,6 +165,7 @@ async function loadPlugins(hard = false) {
                         hash: currentMD5,
                         error: false,
                         api: undefined,
+                        pluginAPI: undefined,
                         level: pluginInstance.config.level,
                         rejected: false,
                         commands: [],
@@ -528,6 +529,8 @@ async function loadPlugin(pluginDefine) {
 
     await pluginDefine.instance.setup(pluginAPI);
 
+    pluginDefine.pluginAPI = pluginAPI;
+
     return pluginDefine;
 }
 
@@ -573,7 +576,14 @@ async function buildMessage(requestBuffer) {
             if (!fileBase64.startsWith("base64://"))
                 fileBase64 = `base64://${fileBase64}`;
             message.push({ type: "file", data: { file: fileBase64, name: item.data.filename } });
-        } else if (item.type === "instance") {
+        }
+        else if (item.type === "textfile") {
+            let targetBase64 = Buffer.from(item.data.text).toString("base64");
+            if (!targetBase64.startsWith("base64://"))
+                targetBase64 = `base64://${targetBase64}`;
+            message.push({ type: "file", data: { file: targetBase64, name: item.data.filename } });
+        }
+        else if (item.type === "instance") {
             message.push(item.data.instance);
         }
     }
@@ -629,6 +639,10 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
         },
         file(path, filename) {
             requestBuffer.push({ type: "file", data: { path, filename } });
+            return this;
+        },
+        textfile(text, filename) {
+            requestBuffer.push({ type: "textfile", data: { text, filename } });
             return this;
         },
         at(who = ctx.user_id) {
@@ -768,6 +782,10 @@ function botHelper(onGoSuperFn = undefined) {
         },
         file(path, filename) {
             requestBuffer.push({ type: "file", data: { path, filename } });
+            return this;
+        },
+        textfile(text, filename) {
+            requestBuffer.push({ type: "textfile", data: { text, filename } });
             return this;
         },
         at(who) {
