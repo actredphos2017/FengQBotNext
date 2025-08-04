@@ -485,6 +485,7 @@ async function loadPlugin(pluginDefine) {
 
             return {
                 async isInScope(ch) {
+                    if (!ch.isGroup) return false;
                     const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
                     return gs[String(ch.groupId)] && gs[String(ch.groupId)].enable;
                 },

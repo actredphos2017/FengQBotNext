@@ -89,7 +89,7 @@ export default {
         commands = commands.filter(e => !getHideInHelpPage(e.pluginId));
       }
 
-      await ch.text(`| 指令 | 别名 | 描述 | 插件 |\n| --- | --- | --- | --- |\n` + commands.map(e => {
+      const markdown = `| 指令 | 别名 | 描述 | 插件 |\n| --- | --- | --- | --- |\n` + commands.map(e => {
         const res = {
           command: e.trigger[0],
           alias: e.trigger.length > 1 ? e.trigger.slice(1).join(" 或 ") : undefined,
@@ -97,7 +97,9 @@ export default {
           plugin: getPluginName(e.pluginId)
         };
         return `| ${res.command} | ${res.alias} | ${res.description} | ${res.plugin} |`
-      }).join("\n")).goAutoReply();
+      }).join("\n");
+
+      await ch.text(markdown).goAutoReply();
     });
 
     api.cmd(["查询群组作用域", "queryScope"], async (ch, pluginId) => {

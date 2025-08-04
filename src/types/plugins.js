@@ -169,16 +169,16 @@
 
 /**
  * @typedef {Object} GroupActionScope
- * @property {function(ch: ContextHelper): Promise<boolean>} isInScope - 检查当前消息是否在作用域内
+ * @property {(ch: ContextHelper) => Promise<boolean>} isInScope - 检查当前消息所在群组是否在作用域内
  * @property {function(): Promise<GroupActionScopeEntity[]>} groupsInScope - 获取在作用域内的群
- * @property {function(ch: ContextHelper): IStore} store - 作用域群组的独立数据存储
+ * @property {(ch: ContextHelper) => IStore} store - 作用域群组的独立数据存储
  */
 
 /**
  * @typedef {"core" | "SOTC" | "TOTC" | "functional" | "normal" | "finally" | number} LoadLevel
  */
 
-const levelMap = {
+var levelMap = {
     core: 200,
     SOTC: 199.99,
     TOTC: 199.98,
