@@ -5,6 +5,10 @@
  * }} EventTrigger
  */
 
+import log4js from "log4js";
+
+const logger = log4js.getLogger("PIPE");
+
 export default {
     /**
      * 存储 EventTrigger 的数组。
@@ -31,11 +35,11 @@ export default {
                 const res = trigger.handler(data);
                 if (res instanceof Promise) {
                     await res.catch((error) => {
-                        console.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
+                        logger.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
                     });
                 }
             } catch (error) {
-                console.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
+                logger.error(`执行事件 ${trigger.event} 的处理器时发生错误:`, error);
             }
         }
     },

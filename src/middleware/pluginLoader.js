@@ -269,6 +269,8 @@ async function loadPlugin(pluginDefine) {
 
     const pluginId = pluginDefine.instance.config.id;
 
+    const pluginLogger = log4js.getLogger(pluginDefine.instance.config.id);
+
     /**
      * @type {import("../types/plugins.js").PluginAPI}
      */
@@ -524,8 +526,8 @@ async function loadPlugin(pluginDefine) {
                 }
             }
         },
-        log: log4js.getLogger(pluginDefine.instance.config.id).log,
-        logger: log4js.getLogger(pluginDefine.instance.config.id)
+        log: (...args) => pluginLogger.info(...args),
+        logger: pluginLogger
     }
 
     await pluginDefine.instance.setup(pluginAPI);
@@ -705,6 +707,7 @@ function contextHelper(ctx, onGoSuperFn = undefined) {
         isGroup: ctx.message_type === "group",
         context: ctx,
         napcat: qqBot,
+        pureMessage: ctx.message.filter(e => e.type === "text").map(e => String(e.data.text)),
         getPureMessage(onlyText = true) {
             if (onlyText && ctx.message.some(e => (e.type !== "text"))) return undefined;
             return getPureMessage(ctx.message);

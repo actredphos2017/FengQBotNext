@@ -58,7 +58,9 @@
  * @property {(instance?: any) => ContextHelper} face - 输入表情并返回上下文助手实例
  * @property {() => Promise<void>} go - 发送并返回一个 Promise
  * @property {() => Promise<void>} goAutoReply - 自动回复并返回一个 Promise
+ * @property {string[]} pureMessage - 返回消息中的文本内容
  * @property {(onlyText: boolean = true) => string | undefined} getPureMessage - 当获得的消息为纯文本时，返回文本对象。onlyText 为 true 时，当消息包含艾特、图片、表情、文件等信息时，会返回 undefined
+
  * @property {(parts: string | string[]) => Promise<void>} redirect - 重定向到新的命令（重定向不会激活新命令生命周期的超级命令）
  * @property {boolean} isGroup - 是否为群组消息
  * @property {Context} context - 原始上下文对象
