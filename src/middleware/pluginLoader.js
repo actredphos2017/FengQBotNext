@@ -488,12 +488,12 @@ async function loadPlugin(pluginDefine) {
             return {
                 async isInScope(ch) {
                     if (!ch.isGroup) return false;
-                    const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
+                    const gs = await pluginAPI.store.get("__groups", defaultGroups);
                     return gs[String(ch.groupId)] && gs[String(ch.groupId)].enable;
                 },
-                async groupsInScope() {
-                    const gs = await pluginAPI.store.get("__groups", c.defaultEnabledGroups);
-                    return Object.values(gs).filter((group) => group.enable);
+                async groupsInScope(includeDisabled = false) {
+                    const gs = await pluginAPI.store.get("__groups", defaultGroups);
+                    return includeDisabled ? Object.values(gs) : Object.values(gs).filter((group) => group.enable);
                 },
                 store(ch) {
                     if (!ch.isGroup) {
@@ -523,6 +523,21 @@ async function loadPlugin(pluginDefine) {
                             await pluginAPI.store.set("__groups", groups);
                         }
                     }
+                },
+                async clearStore(ch) {
+                    if (!ch.isGroup) return;
+                    const gs = await pluginAPI.store.get("__groups", defaultGroups);
+                    if (ch) {
+                        const target = gs[String(ch.groupId)];
+                        if (target) {
+                            target.store = {};
+                        }
+                    } else {
+                        for (const target of Object.values(gs)) {
+                            target.store = {};
+                        }
+                    }
+                    await pluginAPI.store.set("__groups", gs);
                 }
             }
         },

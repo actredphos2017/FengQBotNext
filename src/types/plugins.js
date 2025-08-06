@@ -172,8 +172,9 @@
 /**
  * @typedef {Object} GroupActionScope
  * @property {(ch: ContextHelper) => Promise<boolean>} isInScope - 检查当前消息所在群组是否在作用域内
- * @property {function(): Promise<GroupActionScopeEntity[]>} groupsInScope - 获取在作用域内的群
+ * @property {(includeDisabled?: boolean) => Promise<GroupActionScopeEntity[]>} groupsInScope - 获取在作用域内的群
  * @property {(ch: ContextHelper) => IStore} store - 作用域群组的独立数据存储
+ * @property {(ch?: ContextHelper) => Promise<void>} clearStore - 清空存储
  */
 
 /**
